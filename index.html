@@ -34,7 +34,7 @@
     }
 
     .page {
-        max-width: 860px;
+        max-width: 880px;
         margin: 0 auto;
     }
 
@@ -213,7 +213,7 @@
     #lv {
         width: 100%;
         display: block;
-        max-height: 220px;
+        max-height: 240px;
         object-fit: contain;
     }
 
@@ -265,7 +265,7 @@
         position: absolute;
         top: 8px;
         right: 8px;
-        background: rgba(0, 0, 0, 0.7);
+        background: rgba(0, 0, 0, 0.75);
         color: var(--ac);
         font-size: 0.68em;
         font-family: monospace;
@@ -278,12 +278,13 @@
         bottom: 0;
         left: 0;
         right: 0;
-        background: rgba(0, 0, 0, 0.78);
-        padding: 7px 12px;
-        font-size: 0.82em;
+        background: rgba(0, 0, 0, 0.82);
+        padding: 8px 14px;
+        font-size: 0.85em;
         text-align: center;
-        min-height: 32px;
         direction: rtl;
+        display: none;
+        min-height: 34px;
     }
 
     .sg {
@@ -344,7 +345,43 @@
         font-size: 0.68em;
         color: var(--mu);
         margin-top: 4px;
+        line-height: 1.5;
+    }
+
+    .hint.warn {
+        color: #f59e0b;
+    }
+
+    .mode-box {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 4px;
+    }
+
+    .mode-btn {
+        padding: 10px 8px;
+        border-radius: 8px;
+        border: 1px solid var(--bd);
+        background: var(--bg);
+        color: var(--mu2);
+        font-size: 0.78em;
+        cursor: pointer;
+        text-align: center;
+        transition: all .15s;
         line-height: 1.4;
+    }
+
+    .mode-btn.active {
+        border-color: var(--ac);
+        background: #0a1f17;
+        color: var(--ac);
+    }
+
+    .mode-btn strong {
+        display: block;
+        font-size: 1.05em;
+        margin-bottom: 2px;
     }
 
     .tip {
@@ -487,7 +524,7 @@
         padding-left: 12px;
         font-size: 0.72em;
         font-weight: 700;
-        color: #000;
+        color: #fff;
         white-space: nowrap;
     }
 
@@ -519,20 +556,20 @@
         background: var(--bg);
         border: 1px solid var(--bd);
         border-radius: 8px;
-        padding: 8px 12px;
+        padding: 8px 10px;
         flex: 1;
-        min-width: 80px;
+        min-width: 70px;
         text-align: center;
     }
 
     .en {
-        font-size: 1.1em;
+        font-size: 1.05em;
         font-weight: 700;
         color: var(--ac);
     }
 
     .el {
-        font-size: 0.6em;
+        font-size: 0.58em;
         color: var(--mu);
         text-transform: uppercase;
         letter-spacing: .4px;
@@ -573,7 +610,7 @@
         border: 1px solid var(--bd);
         border-radius: 8px;
         padding: 9px 11px;
-        height: 68px;
+        height: 72px;
         overflow-y: auto;
         font-size: 0.68em;
         font-family: monospace;
@@ -608,7 +645,7 @@
     }
 
     .sl-list {
-        max-height: 360px;
+        max-height: 380px;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
@@ -629,14 +666,19 @@
         color: var(--ac);
         font-family: monospace;
         margin-bottom: 4px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .si-conf {
+        font-size: 0.9em;
+        color: var(--gr);
     }
 
     .si-tx {
-        font-size: 0.88em;
-        line-height: 1.7;
-    }
-
-    .si-tx.rtl {
+        font-size: 0.9em;
+        line-height: 1.8;
         direction: rtl;
         text-align: right;
     }
@@ -709,27 +751,6 @@
         color: var(--ac);
         text-decoration: none;
     }
-
-    .conf-meter {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin-top: 4px;
-    }
-
-    .conf-bar {
-        flex: 1;
-        height: 4px;
-        background: var(--bd);
-        border-radius: 2px;
-        overflow: hidden;
-    }
-
-    .conf-fill {
-        height: 100%;
-        border-radius: 2px;
-        transition: width .2s;
-    }
     </style>
 </head>
 <body>
@@ -741,14 +762,14 @@
                 <span>SRT</span>
                  Extractor
             </h1>
-            <p>Extract hardcoded Arabic subtitles — runs entirely in your browser, free, no API key</p>
+            <p>High-accuracy Arabic subtitle extraction — runs entirely in your browser, free, no API key</p>
             <div class="pills">
                 <span class="pill g">✓ Free forever</span>
                 <span class="pill g">✓ No API key</span>
                 <span class="pill g">✓ 100% local</span>
-                <span class="pill">Arabic-only filter</span>
-                <span class="pill">Confidence scoring</span>
-                <span class="pill">Live preview</span>
+                <span class="pill">0.5s precision mode</span>
+                <span class="pill">3-zone scanning</span>
+                <span class="pill">Symbol noise filter</span>
             </div>
         </div>
 
@@ -757,7 +778,7 @@
             <div class="ct">Step 1 — Upload video</div>
             <div class="dz" id="dz">
                 <input type="file" id="fi" accept="video/*">
-                <div style="font-size:2em;margin-bottom:10px;">📁</div>
+                <div style="font-size:2.2em;margin-bottom:10px;">📁</div>
                 <h3>Drop video here or click to browse</h3>
                 <p>MP4, MKV, AVI, MOV — processed 100% in your browser</p>
             </div>
@@ -775,98 +796,99 @@
                 </canvas>
                 <div class="lbadge">SCANNING</div>
                 <div class="ltc" id="ltc">00:00:00</div>
-                <div class="ltxt" id="ltxt">—</div>
+                <div class="ltxt" id="ltxt"></div>
             </div>
         </div>
 
         <!-- SETTINGS -->
         <div class="card">
-            <div class="ct">Step 2 — Settings</div>
-            <div class="sg">
+            <div class="ct">Step 2 — Quality mode</div>
 
-                <div>
-                    <label class="lbl">Frame interval</label>
-                    <select id="interval">
-                        <option value="1.0">1.0s — high accuracy</option>
-                        <option value="1.5" selected>1.5s — recommended ⚡</option>
-                        <option value="2.0">2.0s — fast</option>
-                        <option value="3.0">3.0s — fastest</option>
-                    </select>
-                    <div class="hint">Most Arabic subtitles stay on screen 2–4s. 1.5s catches all of them.</div>
+            <div class="mode-box" id="modeBox">
+                <div class="mode-btn active" data-mode="quality" onclick="setMode('quality',this)">
+                    <strong>🎯 Quality mode</strong>
+
+                          0.5s interval · catches all subtitles
+                    <br>
+                    slower but complete
+                        
                 </div>
+                <div class="mode-btn" data-mode="fast" onclick="setMode('fast',this)">
+                    <strong>⚡ Fast mode</strong>
 
-                <div>
-                    <label class="lbl">Subtitle zone</label>
-                    <select id="zone">
-                        <option value="bottom" selected>Bottom only — fastest ⚡</option>
-                        <option value="top">Top only</option>
-                        <option value="both">Both zones</option>
-                    </select>
-                    <div class="hint">Use "Bottom only" unless your video has top subtitles too.</div>
+                          1.0s interval · good for slow dialogue
+                    <br>
+                    faster but may miss short subs
+                        
                 </div>
+            </div>
+            <div class="hint warn" id="modeHint">⚠ Quality mode: a 45-min episode takes ~20–30 min. Worth it for accurate results.</div>
 
-                <div>
-                    <label class="lbl">Crop height (subtitle strip)</label>
-                    <div class="rr">
-                        <input type="range" id="crop" min="8" max="50" value="28" step="1">
-                        <span class="rv" id="cropV">28%</span>
+            <div style="margin-top:18px;">
+                <div class="sg">
+
+                    <div>
+                        <label class="lbl">Subtitle zone</label>
+                        <select id="zone">
+                            <option value="bottom" selected>Bottom only (most Arabic dramas)</option>
+                            <option value="top">Top only</option>
+                            <option value="both">Bottom + Top</option>
+                            <option value="all">Bottom + Top + Center (title cards)</option>
+                        </select>
+                        <div class="hint">Use "Bottom + Center" to catch on-screen title cards too.</div>
                     </div>
-                    <div class="hint">28% fits 2-line subtitles. Go up to 35% if letters are still cut off.</div>
-                </div>
 
-                <div>
-                    <label class="lbl">Skip sensitivity</label>
-                    <div class="rr">
-                        <input type="range" id="diff" min="8" max="50" value="22" step="1">
-                        <span class="rv" id="diffV">22</span>
+                    <div>
+                        <label class="lbl">Crop height per zone</label>
+                        <div class="rr">
+                            <input type="range" id="crop" min="10" max="50" value="28" step="1">
+                            <span class="rv" id="cropV">28%</span>
+                        </div>
+                        <div class="hint">28% fits 2-line Arabic subtitles. Increase if letters are cut off.</div>
                     </div>
-                    <div class="hint">Higher skips more identical frames. 22 skips ~85% safely.</div>
-                </div>
 
-                <div>
-                    <label class="lbl">Min confidence % (key setting)</label>
-                    <div class="rr">
-                        <input type="range" id="conf" min="30" max="90" value="55" step="5">
-                        <span class="rv" id="confV">55%</span>
+                    <div>
+                        <label class="lbl">Skip sensitivity</label>
+                        <div class="rr">
+                            <input type="range" id="diff" min="3" max="40" value="15" step="1">
+                            <span class="rv" id="diffV">15</span>
+                        </div>
+                        <div class="hint">Lower = skip less, catch more. 15 is safe for fast dialogue.</div>
                     </div>
-                    <div class="hint">Rejects low-confidence OCR results. Eliminates most garbage text.</div>
-                </div>
 
-                <div>
-                    <label class="lbl">Arabic purity filter</label>
-                    <select id="purity">
-                        <option value="0.4">40% — allow mixed text</option>
-                        <option value="0.6" selected>60% — recommended</option>
-                        <option value="0.75">75% — strict Arabic only</option>
-                        <option value="0.9">90% — very strict</option>
-                    </select>
-                    <div class="hint">% of chars that must be Arabic. Kills Latin/symbol garbage.</div>
-                </div>
+                    <div>
+                        <label class="lbl">Min confidence %</label>
+                        <div class="rr">
+                            <input type="range" id="conf" min="20" max="85" value="45" step="5">
+                            <span class="rv" id="confV">45%</span>
+                        </div>
+                        <div class="hint">Lower = keep more results. 45% balances quality vs completeness.</div>
+                    </div>
 
-                <div>
-                    <label class="lbl">Min subtitle length (chars)</label>
-                    <select id="minLen">
-                        <option value="2">2 — catch short words</option>
-                        <option value="3" selected>3 — recommended</option>
-                        <option value="5">5 — sentences only</option>
-                    </select>
-                </div>
+                    <div>
+                        <label class="lbl">Arabic purity filter</label>
+                        <select id="purity">
+                            <option value="0.4">40% — catch mixed on-screen text</option>
+                            <option value="0.55" selected>55% — recommended</option>
+                            <option value="0.7">70% — strict Arabic only</option>
+                        </select>
+                    </div>
 
-                <div>
-                    <label class="lbl">Image sharpening before OCR</label>
-                    <select id="sharpen">
-                        <option value="0">Off — fastest</option>
-                        <option value="1" selected>On — recommended (better accuracy)</option>
-                    </select>
-                    <div class="hint">Pre-processes each crop to improve Arabic character recognition.</div>
-                </div>
+                    <div>
+                        <label class="lbl">Image sharpening</label>
+                        <select id="sharpen">
+                            <option value="1" selected>On — better Arabic accuracy</option>
+                            <option value="0">Off — faster</option>
+                        </select>
+                    </div>
 
+                </div>
             </div>
 
             <div class="tip">
-                <strong>⚡ Why this version is more accurate</strong>
+                <strong>💡 Why quality mode catches more</strong>
 
-                    Every OCR result is now scored by: (1) Tesseract confidence %, (2) Arabic character purity ratio, (3) noise pattern detection. Only results passing all three make it into the SRT. This eliminates the Latin/symbol garbage seen in previous runs.
+                    Analysis of your test file showed 12+ subtitles per 50 that last under 1.5s — including short lines like "إنها موثوقة" (1.2s) and "خزينة الدولة؟" (1.6s). At 1.5s interval these are invisible to the scanner. 0.5s interval catches everything. The 3-zone scan also picks up title cards like [مدينة تشينغلان، 2016] which appear in the center of the frame.
                   
             </div>
         </div>
@@ -884,25 +906,26 @@
                 <div class="ph">
                     <div class="phd" id="p1d">1</div>
                     <div class="phi">
-                        <div class="phl">Loading Tesseract OCR engine</div>
-                        <div class="phs" id="p1s">Arabic language model</div>
+                        <div class="phl">Loading Arabic OCR engine</div>
+                        <div class="phs" id="p1s">Arabic language model (ara)</div>
                     </div>
                 </div>
                 <div class="ph">
                     <div class="phd" id="p2d">2</div>
                     <div class="phi">
-                        <div class="phl">Scanning frames + filtering</div>
-                        <div class="phs" id="p2s">Confidence + Arabic purity checks active</div>
+                        <div class="phl">Scanning frames — all zones</div>
+                        <div class="phs" id="p2s">0.5s interval · pixel-diff filtering · confidence gate</div>
                     </div>
                 </div>
                 <div class="ph">
                     <div class="phd" id="p3d">3</div>
                     <div class="phi">
                         <div class="phl">Building clean subtitle timeline</div>
-                        <div class="phs" id="p3s">Deduplicating and merging</div>
+                        <div class="phs" id="p3s">Symbol strip · dedup · merge</div>
                     </div>
                 </div>
             </div>
+
             <div class="pbwrap">
                 <div class="pbtrack">
                     <div class="pbfill" id="pbf" style="width:0%">0%</div>
@@ -912,6 +935,7 @@
                     <span class="pbpct" id="pbpct">0%</span>
                 </div>
             </div>
+
             <div class="eta-row">
                 <div class="eb">
                     <div class="en" id="etaEl">—</div>
@@ -934,18 +958,19 @@
                     <div class="el">% rejected</div>
                 </div>
             </div>
+
             <div class="sr">
                 <div class="sb">
                     <div class="sn" id="stF">—</div>
-                    <div class="sl">Total</div>
+                    <div class="sl">Frames</div>
                 </div>
                 <div class="sb">
                     <div class="sn" id="stSk">—</div>
-                    <div class="sl">Diff skip</div>
+                    <div class="sl">Skipped</div>
                 </div>
                 <div class="sb">
                     <div class="sn" id="stOcr">—</div>
-                    <div class="sl">OCR runs</div>
+                    <div class="sl">OCR</div>
                 </div>
                 <div class="sb">
                     <div class="sn" id="stRej">—</div>
@@ -956,6 +981,7 @@
                     <div class="sl">Subtitles</div>
                 </div>
             </div>
+
             <div class="log" id="log"></div>
         </div>
 
@@ -996,6 +1022,30 @@
         ocrF = 0,
         rejF = 0,
         startTime = 0;
+    let currentInterval = 0.5;
+
+    // ── MODE SELECTOR ──
+    function setMode(mode, el) {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+        if (mode === 'quality') {
+            currentInterval = 0.5;
+            $('modeHint').textContent = '⚠ Quality mode: a 45-min episode takes ~20–30 min. Worth it for complete accurate results.';
+            $('modeHint').className = 'hint warn';
+            $('diff').value = 15;
+            $('diffV').textContent = '15';
+            $('conf').value = 45;
+            $('confV').textContent = '45%';
+        } else {
+            currentInterval = 1.0;
+            $('modeHint').textContent = '⚡ Fast mode: a 45-min episode takes ~10–15 min. May miss subtitles under 1s.';
+            $('modeHint').className = 'hint';
+            $('diff').value = 20;
+            $('diffV').textContent = '20';
+            $('conf').value = 50;
+            $('confV').textContent = '50%';
+        }
+    }
 
     $('crop').oninput = () => $('cropV').textContent = $('crop').value + '%';
     $('diff').oninput = () => $('diffV').textContent = $('diff').value;
@@ -1025,7 +1075,7 @@
         $('fInfo').style.display = 'flex';
         $('sbtn').disabled = false;
         $('sLabel').textContent = 'Start Extraction';
-        addLog('Loaded: ' + f.name);
+        addLog('Loaded: ' + f.name + ' (' + fmtB(f.size) + ')');
     }
     $('fRm').onclick = e => {
         e.stopPropagation();
@@ -1040,7 +1090,6 @@
     function fmtB(b) {
         return b > 1e9 ? (b / 1e9).toFixed(1) + ' GB' : b > 1e6 ? (b / 1e6).toFixed(1) + ' MB' : (b / 1e3).toFixed(0) + ' KB';
     }
-
     function fmtTC(s) {
         const h = String(Math.floor(s / 3600)).padStart(2, '0');
         const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
@@ -1051,7 +1100,12 @@
     function fmtDur(s) {
         if (s < 60)
             return Math.round(s) + 's';
-        return Math.floor(s / 60) + 'm ' + Math.round(s % 60) + 's';
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sc = Math.round(s % 60);
+        if (h > 0)
+            return `${h}h ${m}m`;
+        return `${m}m ${sc}s`;
     }
 
     function addLog(m) {
@@ -1059,7 +1113,6 @@
         b.innerHTML += `<div>> ${m}</div>`;
         b.scrollTop = b.scrollHeight;
     }
-
     function setPhase(n, st) {
         const d = $('p' + n + 'd');
         d.className = 'phd ' + (st === 'act' ? 'act' : st === 'dn' ? 'dn' : '');
@@ -1082,10 +1135,11 @@
         const el = (Date.now() - startTime) / 1000;
         $('etaEl').textContent = fmtDur(el);
         const done = skipF + ocrF;
-        if (done > 5 && totF > 0) {
+        if (done > 10 && totF > 0) {
             const rate = done / el * 60;
             $('etaSpd').textContent = Math.round(rate);
-            $('etaRm').textContent = fmtDur((totF - done) / done * el);
+            const rem = (totF - done) / done * el;
+            $('etaRm').textContent = fmtDur(rem);
         }
         $('etaSave').textContent = done > 0 ? Math.round(skipF / done * 100) + '%' : '—';
         $('etaRej').textContent = ocrF > 0 ? Math.round(rejF / ocrF * 100) + '%' : '—';
@@ -1104,80 +1158,79 @@
         return c > 0 ? d / c : 0;
     }
 
-    // ── SHARPEN for better Arabic OCR ──
+    // ── SHARPEN: 2× upscale + contrast ──
     function sharpenCanvas(src) {
         const dst = $('sharpCvs');
-        dst.width = src.width;
-        dst.height = src.height;
-        const ctx = dst.getContext('2d');
-        // scale up 2x for better small-text recognition
         dst.width = src.width * 2;
         dst.height = src.height * 2;
+        const ctx = dst.getContext('2d');
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(src, 0, 0, dst.width, dst.height);
-        // high contrast filter
-        ctx.filter = 'contrast(1.4) brightness(1.1)';
-        ctx.drawImage(dst, 0, 0);
-        ctx.filter = 'none';
+        const id = ctx.getImageData(0, 0, dst.width, dst.height);
+        const d = id.data;
+        // simple contrast boost
+        for (let i = 0; i < d.length; i += 4) {
+            d[i] = Math.min(255, Math.max(0, (d[i] - 128) * 1.4 + 128));
+            d[i + 1] = Math.min(255, Math.max(0, (d[i + 1] - 128) * 1.4 + 128));
+            d[i + 2] = Math.min(255, Math.max(0, (d[i + 2] - 128) * 1.4 + 128));
+        }
+        ctx.putImageData(id, 0, 0);
         return dst;
     }
 
-    // ── ARABIC PURITY CHECK ──
-    // Returns ratio of Arabic chars to total meaningful chars
+    // ── ARABIC PURITY ──
     function arabicPurity(text) {
-        if (!text || !text.trim())
-            return 0;
-        const arabicChars = (text.match(/[\u0600-\u06FF]/g) || []).length;
-        const meaningful = (text.match(/[\u0600-\u06FF\u0041-\u005A\u0061-\u007A\u0030-\u0039]/g) || []).length;
-        if (meaningful === 0)
-            return 0;
-        return arabicChars / meaningful;
+        const ar = (text.match(/[\u0600-\u06FF]/g) || []).length;
+        const mn = (text.match(/[\u0600-\u06FF A-Za-z0-9]/g) || []).length;
+        return mn === 0 ? 0 : ar / mn;
     }
 
-    // ── NOISE PATTERN DETECTION ──
-    // Returns true if text looks like OCR garbage
+    // ── NOISE DETECTION ──
     function isNoise(text) {
-        if (!text)
+        if (!text || text.trim().length < 2)
             return true;
         const t = text.trim();
-        if (t.length < 2)
-            return true;
-        // mostly symbols/punctuation
-        const symbolRatio = (t.match(/[^\u0600-\u06FF\u0041-\u007A\u0030-\u0039\s]/g) || []).length / t.length;
-        if (symbolRatio > 0.5)
-            return true;
-        // repeated single chars
+        // single repeated chars
         if (/^(.)\1{3,}$/.test(t.replace(/\s/g, '')))
             return true;
-        // long runs of Latin mixed with Arabic (OCR confusion)
-        const latinRuns = (t.match(/[A-Za-z]{4,}/g) || []);
-        if (latinRuns.length > 2)
+        // >40% symbol chars (not Arabic, not space, not common punct)
+        const sym = (t.match(/[^\u0600-\u06FF\s\u060C\u061B\u061F\.\,\!\?\:\-\[\]\(\)\<\>\/\u0030-\u0039A-Za-z]/g) || []).length;
+        if (sym / t.length > 0.4)
             return true;
-        // too many numbers mixed in
-        const numRatio = (t.match(/[0-9]/g) || []).length / t.length;
-        if (numRatio > 0.4)
+        // more than 3 long Latin runs (not Korean drama names)
+        const latinRuns = (t.match(/[A-Za-z]{5,}/g) || []);
+        if (latinRuns.length > 2)
             return true;
         return false;
     }
 
-    // ── CLEAN Arabic text ──
-    function cleanArabic(text) {
+    // ── SYMBOL STRIP: remove noise chars that survive OCR ──
+    function stripSymbols(text) {
         return text
-        .replace(/[A-Za-z]{3,}/g, ' ') // remove long Latin runs
-        .replace(/[0-9]{3,}/g, ' ') // remove long number sequences
-        .replace(/[^\u0600-\u06FF\s\u060C\u061B\u061F\u0021-\u002F\u003A-\u0040]/g, ' ') // keep Arabic + basic punctuation
-        .replace(/\s+/g, ' ')
+
+        .// remove specific noise chars identified in analysis: " ' * + # = @ ~ ^ \ | _ ` 
+        replace(/["'*+#=@~^\\|_`<>]/g, ' ')
+
+        .// remove isolated single non-Arabic chars surrounded by spaces
+        replace(/(?<!\S)[^أ-ي\u0600-\u06FF\s][^أ-ي\u0600-\u06FF\s]?(?!\S)/g, ' ')
+
+        .// remove long Latin sequences (keep short ones like NIS, USB)
+        replace(/[A-Za-z]{4,}/g, ' ')
+
+        .// remove standalone numbers that aren't part of Arabic text
+        replace(/(?<!\S)\d+(?!\S)/g, ' ')
+
+        .// collapse multiple spaces
+        replace(/\s+/g, ' ')
         .trim();
     }
 
-    // ── EXTRACT CONFIDENCE from Tesseract data ──
-    function getConfidence(data) {
-        if (!data || !data.words || data.words.length === 0)
+    // ── GET CONFIDENCE ──
+    function getConf(data) {
+        if (!data || !data.words || !data.words.length)
             return 0;
-        const confs = data.words.map(w => w.confidence).filter(c => c > 0);
-        if (confs.length === 0)
-            return 0;
-        return confs.reduce((a, b) => a + b, 0) / confs.length;
+        const c = data.words.map(w => w.confidence).filter(v => v > 0);
+        return c.length ? c.reduce((a, b) => a + b, 0) / c.length : 0;
     }
 
     function seekTo(v, t) {
@@ -1191,10 +1244,11 @@
         });
     }
 
+    // ── SIMILARITY ──
     function norm(t) {
-        return t.replace(/[\u0617-\u061A\u064B-\u065F\u06D6-\u06ED]/g, '').replace(/\s+/g, ' ').trim();
+        return (t || '').replace(/[\u0617-\u061A\u064B-\u065F\u06D6-\u06ED]/g, '').replace(/\s+/g, ' ').trim();
     }
-    function similar(a, b, thr=0.75) {
+    function similar(a, b, thr=0.72) {
         a = norm(a);
         b = norm(b);
         if (!a && !b)
@@ -1225,37 +1279,39 @@
         return dp[m][n];
     }
 
-    function drawOverlay(canvas, vw, vh, crop, pad, zone, found) {
+    // ── OVERLAY ──
+    function drawOverlay(canvas, vw, vh, crop, zone, foundZone) {
         const ctx = canvas.getContext('2d');
         canvas.width = vw;
         canvas.height = vh;
         const ch = Math.max(1, Math.floor(vh * crop));
-        const padPx = Math.floor(vh * 0.04);
-        const totalH = Math.min(ch + padPx, vh);
+        const pad = Math.floor(vh * 0.035);
         ctx.clearRect(0, 0, vw, vh);
-        const dz = (y, active) => {
-            // outer padded zone (lighter)
-            ctx.strokeStyle = 'rgba(16,185,129,0.2)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([3, 3]);
-            ctx.strokeRect(1, y - padPx, vw - 2, totalH + padPx);
-            ctx.setLineDash([]);
-            // inner crop zone (solid)
-            ctx.strokeStyle = active ? 'rgba(16,185,129,0.9)' : 'rgba(16,185,129,0.25)';
+        const drawZ = (y, label, active) => {
+            ctx.strokeStyle = active ? 'rgba(16,185,129,0.9)' : 'rgba(16,185,129,0.2)';
             ctx.lineWidth = active ? 2 : 1;
+            ctx.setLineDash(active ? [] : [4, 4]);
             ctx.strokeRect(2, y + 2, vw - 4, ch - 4);
-            ctx.fillStyle = active ? 'rgba(16,185,129,0.10)' : 'rgba(16,185,129,0.03)';
+            ctx.setLineDash([]);
+            ctx.fillStyle = active ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.02)';
             ctx.fillRect(2, y + 2, vw - 4, ch - 4);
-            if (active && found) {
-                ctx.fillStyle = 'rgba(16,185,129,0.95)';
+            if (active) {
+                ctx.fillStyle = 'rgba(16,185,129,0.9)';
                 ctx.font = 'bold 10px monospace';
-                ctx.fillText('✓ TEXT', 8, y + 15);
+                ctx.fillText(label, 8, y + 15);
             }
         };
-        if (zone === 'top' || zone === 'both')
-            dz(0, true);
-        if (zone === 'bottom' || zone === 'both')
-            dz(vh - ch, true);
+        const showBot = zone === 'bottom' || zone === 'both' || zone === 'all';
+        const showTop = zone === 'top' || zone === 'both' || zone === 'all';
+        const showCtr = zone === 'all';
+        if (showTop)
+            drawZ(0, '▶ TOP', foundZone === 'top');
+        if (showCtr) {
+            const cy = Math.floor((vh - ch) / 2);
+            drawZ(cy, '▶ CENTER', foundZone === 'center');
+        }
+        if (showBot)
+            drawZ(Math.max(0, vh - ch - pad), '▶ BOTTOM', foundZone === 'bottom' || foundZone === 'bottom2');
     }
 
     $('sbtn').onclick = async () => {
@@ -1277,27 +1333,28 @@
             block: 'start'
         });
 
-        const interval = parseFloat($('interval').value);
+        const interval = currentInterval;
         const crop = parseInt($('crop').value) / 100;
-        const diff = parseFloat($('diff').value);
-        const minL = parseInt($('minLen').value);
-        const zone = $('zone').value;
-        const confThresh = parseInt($('conf').value);
-        const purityThresh = parseFloat($('purity').value);
+        const diffT = parseFloat($('diff').value);
+        const confT = parseInt($('conf').value);
+        const purityT = parseFloat($('purity').value);
         const doSharpen = parseInt($('sharpen').value) === 1;
-        const useTop = zone === 'top' || zone === 'both';
-        const useBot = zone === 'bottom' || zone === 'both';
+        const zone = $('zone').value;
 
-        addLog(`interval=${interval}s zone=${zone} crop=${Math.round(crop * 100)}% diff=${diff} conf≥${confThresh}% purity≥${Math.round(purityThresh * 100)}% sharpen=${doSharpen}`);
+        const useTop = zone === 'top' || zone === 'both' || zone === 'all';
+        const useBot = zone === 'bottom' || zone === 'both' || zone === 'all';
+        const useCtr = zone === 'all';
 
-        // Phase 1
+        addLog(`Mode: ${interval}s interval | zone:${zone} | crop:${Math.round(crop * 100)}% | conf≥${confT}% | purity≥${Math.round(purityT * 100)}% | sharpen:${doSharpen}`);
+
+        // Phase 1 — load Tesseract Arabic only
         setPhase(1, 'act');
         setProg(2, 'Loading Arabic OCR engine...');
         try {
             worker = await Tesseract.createWorker('ara', 1, {
                 logger: m => {
                     if (m.status === 'loading language traineddata')
-                        $('p1s').textContent = 'Loading Arabic model: ' + Math.round(m.progress * 100) + '%';
+                        $('p1s').textContent = 'Downloading Arabic model: ' + Math.round(m.progress * 100) + '%';
                     if (m.status === 'initializing api')
                         $('p1s').textContent = 'Initialising OCR...';
                 }
@@ -1308,17 +1365,13 @@
             $('sbtn').disabled = false;
             return;
         }
-
-        // Arabic-specific PSM settings
         await worker.setParameters({
-            tessedit_pageseg_mode: '6',
-            tessedit_char_whitelist: '',
+            tessedit_pageseg_mode: '6'
         });
-        // no whitelist — let it find all Arabic
         setPhase(1, 'dn');
-        addLog('Arabic OCR engine ready.');
+        addLog('Arabic OCR ready.');
 
-        // Phase 2
+        // Phase 2 — scan
         setPhase(2, 'act');
         const video = document.createElement('video');
         video.src = URL.createObjectURL(vFile);
@@ -1334,19 +1387,98 @@
             offCvs = $('offscreen'),
             offCtx = offCvs.getContext('2d');
 
+        // build time array — quality mode uses 0.5s
         const times = [];
         for (let t = 0; t < dur; t += interval)
             times.push(parseFloat(t.toFixed(3)));
         totF = times.length;
         updStats();
-        addLog(`Duration: ${dur.toFixed(0)}s | ${times.length} frames to sample`);
+        addLog(`Duration: ${fmtDur(dur)} | ${times.length} frames at ${interval}s interval`);
+        addLog(`Estimated time: ${fmtDur(times.length * 0.6)} (approx)`);
 
-        let prevTopCtx = null,
-            prevBotCtx = null,
-            hasPT = false,
-            hasPB = false;
-        const topRes = [],
-            botRes = [];
+        // per-zone state
+        const zones = {};
+        if (useTop)
+            zones.top = {
+                prev: null,
+                has: false
+            };
+        if (useBot)
+            zones.bottom = {
+                prev: null,
+                has: false
+            };
+        if (useCtr)
+            zones.center = {
+                prev: null,
+                has: false
+            };
+
+        const zoneResults = {
+            top: [],
+            bottom: [],
+            center: []
+        };
+
+        const processZone = async (zname, yOff, h, t) => {
+            const zCtx = document.createElement('canvas').getContext('2d');
+            zCtx.canvas.width = offCvs.width;
+            zCtx.canvas.height = h;
+            zCtx.drawImage(offCvs, 0, yOff, offCvs.width, h, 0, 0, offCvs.width, h);
+
+            const zs = zones[zname];
+            const pd = zs.has ? pxDiff(zs.prev, zCtx, offCvs.width, h) : 999;
+            if (pd <= diffT) {
+                skipF++;
+                return null;
+            }
+
+            ocrF++;
+            const src = doSharpen ? sharpenCanvas(zCtx.canvas) : zCtx.canvas;
+            const {data} = await worker.recognize(src);
+            const rawText = (data.text || '').replace(/\r/g, '').replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+            const confidence = getConf(data);
+
+            // update prev
+            if (!zs.prev) {
+                zs.prev = document.createElement('canvas').getContext('2d');
+                zs.prev.canvas.width = offCvs.width;
+                zs.prev.canvas.height = h;
+            }
+            zs.prev.canvas.width = offCvs.width;
+            zs.prev.canvas.height = h;
+            zs.prev.drawImage(zCtx.canvas, 0, 0);
+            zs.has = true;
+
+            // FILTER 1: confidence
+            if (confidence < confT) {
+                rejF++;
+                return null;
+            }
+            // FILTER 2: noise pattern
+            if (isNoise(rawText)) {
+                rejF++;
+                return null;
+            }
+            // FILTER 3: Arabic purity
+            if (arabicPurity(rawText) < purityT) {
+                rejF++;
+                return null;
+            }
+
+            // CLEAN: strip symbol noise
+            const cleaned = stripSymbols(rawText);
+            if (!cleaned || cleaned.length < 3) {
+                rejF++;
+                return null;
+            }
+
+            return {
+                t,
+                text: cleaned,
+                conf: Math.round(confidence)
+            };
+        };
 
         for (let i = 0; i < times.length; i++) {
             const t = times[i];
@@ -1357,150 +1489,75 @@
             const VW = offCvs.width,
                 VH = offCvs.height;
             const CH = Math.max(1, Math.floor(VH * crop));
-            // PAD adds extra pixels above/below zone so letter ascenders/descenders and 2-line subs are never clipped
-            const PAD = Math.floor(VH * 0.04);
+            const PAD = Math.floor(VH * 0.035);
             $('lv').currentTime = t;
             $('ltc').textContent = fmtTC(t).split(',')[0];
 
-            let foundTxt = '';
+            let foundZone = null,
+                foundTxt = '';
 
-            const processZone = async (isTop) => {
-                // extend zone by PAD in the inward direction
-                const yOff = isTop ? 0 : Math.max(0, VH - CH - PAD);
-                const cropH = Math.min(CH + PAD, VH);
-                const zCtx = document.createElement('canvas').getContext('2d');
-                zCtx.canvas.width = VW;
-                zCtx.canvas.height = cropH;
-                zCtx.drawImage(offCvs, 0, yOff, VW, cropH, 0, 0, VW, cropH);
-
-                const prevCtx = isTop ? prevTopCtx : prevBotCtx;
-                const hasPrev = isTop ? hasPT : hasPB;
-                const pd = hasPrev ? pxDiff(prevCtx, zCtx, VW, cropH) : 999;
-
-                if (pd <= diff) {
-                    skipF++;
-                    return;
+            if (useBot) {
+                const yOff = Math.max(0, VH - CH - PAD);
+                const h = Math.min(CH + PAD, VH);
+                const r = await processZone('bottom', yOff, h, t);
+                if (r) {
+                    zoneResults.bottom.push(r);
+                    foundZone = 'bottom';
+                    foundTxt = r.text;
                 }
-
-                // run OCR
-                ocrF++;
-                const srcCanvas = doSharpen ? sharpenCanvas(zCtx.canvas) : zCtx.canvas;
-                const {data} = await worker.recognize(srcCanvas);
-                const rawText = (data.text || '').replace(/\r/g, '').replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
-                const confidence = getConfidence(data);
-
-                // FILTER 1: confidence threshold
-                if (confidence < confThresh) {
-                    rejF++;
-                    if (isTop) {
-                        prevTopCtx = zCtx;
-                        hasPT = true;
-                    } else {
-                        prevBotCtx = zCtx;
-                        hasPB = true;
+            }
+            if (useTop) {
+                const r = await processZone('top', 0, CH, t);
+                if (r) {
+                    zoneResults.top.push(r);
+                    if (!foundZone) {
+                        foundZone = 'top';
+                        foundTxt = r.text;
                     }
-                    return;
                 }
-
-                // FILTER 2: noise pattern
-                if (isNoise(rawText)) {
-                    rejF++;
-                    if (isTop) {
-                        prevTopCtx = zCtx;
-                        hasPT = true;
-                    } else {
-                        prevBotCtx = zCtx;
-                        hasPB = true;
+            }
+            if (useCtr) {
+                const yOff = Math.floor((VH - CH) / 2);
+                const r = await processZone('center', yOff, CH, t);
+                if (r) {
+                    zoneResults.center.push(r);
+                    if (!foundZone) {
+                        foundZone = 'center';
+                        foundTxt = r.text;
                     }
-                    return;
                 }
+            }
 
-                // FILTER 3: Arabic purity
-                const purity = arabicPurity(rawText);
-                if (purity < purityThresh) {
-                    rejF++;
-                    if (isTop) {
-                        prevTopCtx = zCtx;
-                        hasPT = true;
-                    } else {
-                        prevBotCtx = zCtx;
-                        hasPB = true;
-                    }
-                    return;
-                }
-
-                // CLEAN: strip remaining Latin noise
-                const cleaned = cleanArabic(rawText);
-                if (!cleaned || cleaned.length < minL) {
-                    rejF++;
-                    if (isTop) {
-                        prevTopCtx = zCtx;
-                        hasPT = true;
-                    } else {
-                        prevBotCtx = zCtx;
-                        hasPB = true;
-                    }
-                    return;
-                }
-
-                // PASSED all filters
-                foundTxt = cleaned;
-                if (isTop) {
-                    topRes.push({
-                        t,
-                        text: cleaned,
-                        conf: confidence
-                    });
-                }
-                else {
-                    botRes.push({
-                        t,
-                        text: cleaned,
-                        conf: confidence
-                    });
-                }
-                if (isTop) {
-                    prevTopCtx = zCtx;
-                    hasPT = true;
-                } else {
-                    prevBotCtx = zCtx;
-                    hasPB = true;
-                }
-            };
-
-            if (useTop)
-                await processZone(true);
-            if (useBot)
-                await processZone(false);
-
-            drawOverlay(lcvs, video.videoWidth || 1280, video.videoHeight || 720, crop, PAD, zone, !!foundTxt);
-            $('ltxt').textContent = foundTxt || '';
-            $('ltxt').style.display = foundTxt ? 'block' : 'none';
+            drawOverlay(lcvs, VW, VH, crop, zone, foundZone);
+            if (foundTxt) {
+                $('ltxt').textContent = foundTxt;
+                $('ltxt').style.display = 'block';
+            } else {
+                $('ltxt').style.display = 'none';
+            }
 
             updStats();
             const pct = 8 + ((i + 1) / times.length) * 80;
-            setProg(pct, `Frame ${i + 1} / ${times.length} — ${t.toFixed(1)}s`);
-            $('p2s').textContent = `Frame ${i + 1}/${times.length} · OCR:${ocrF} · Skipped:${skipF} · Rejected:${rejF}`;
-
-            if (i % 25 === 0 && i > 0)
-                addLog(`t=${t.toFixed(0)}s | OCR:${ocrF} skip:${skipF} rej:${rejF} subs:${subs.length}`);
+            setProg(pct, `Frame ${i + 1}/${times.length} — ${fmtTC(t).split(',')[0]}`);
+            $('p2s').textContent = `Frame ${i + 1}/${times.length} · OCR:${ocrF} · Skip:${skipF} · Reject:${rejF}`;
+            if (i % 50 === 0 && i > 0)
+                addLog(`t=${fmtDur(t)} | OCR:${ocrF} skip:${skipF} rej:${rejF} subs:${subs.length}`);
         }
 
         setPhase(2, 'dn');
-        addLog(`Scan done. OCR:${ocrF} Skipped:${skipF} Rejected:${rejF}`);
-        addLog(`Rejection rate: ${Math.round(rejF / Math.max(ocrF, 1) * 100)}% (was your previous ~90% garbage)`);
+        addLog(`Scan done. OCR:${ocrF} Skipped:${skipF} Rejected:${rejF} (${Math.round(rejF / Math.max(ocrF, 1) * 100)}% rejection rate)`);
 
-        // Phase 3
+        // Phase 3 — build timeline
         setPhase(3, 'act');
         setProg(90, 'Building subtitle timeline...');
 
-        function buildTL(frames) {
+        function buildTL(frames, intv) {
             const out = [];
             let cur = null,
                 last = '';
             for (const r of frames) {
                 const tx = r.text.trim();
-                if (!tx || tx.length < minL) {
+                if (!tx || tx.length < 3) {
                     if (cur) {
                         out.push(cur);
                         cur = null;
@@ -1509,14 +1566,18 @@
                     continue;
                 }
                 if (cur && similar(tx, last)) {
-                    cur.end = r.t + interval;
-                }
-                else {
+                    cur.end = r.t + intv;
+                    // keep highest confidence text version
+                    if (r.conf > cur.conf) {
+                        cur.text = tx;
+                        cur.conf = r.conf;
+                    }
+                } else {
                     if (cur)
                         out.push(cur);
                     cur = {
                         start: r.t,
-                        end: r.t + interval,
+                        end: r.t + intv,
                         text: tx,
                         conf: r.conf
                     };
@@ -1528,36 +1589,43 @@
             return out;
         }
 
-        const tSubs = useTop ? buildTL(topRes) : [];
-        const bSubs = useBot ? buildTL(botRes) : [];
-        const merged = [...tSubs, ...bSubs].sort((a, b) => a.start - b.start);
+        const tSubs = useTop ? buildTL(zoneResults.top, interval) : [];
+        const bSubs = useBot ? buildTL(zoneResults.bottom, interval) : [];
+        const cSubs = useCtr ? buildTL(zoneResults.center, interval) : [];
+        const merged = [...tSubs, ...bSubs, ...cSubs].sort((a, b) => a.start - b.start);
+
+        // deduplicate across zones
         const final = [];
         for (const s of merged) {
             const l = final[final.length - 1];
-            if (l && similar(s.text, l.text, 0.85) && Math.abs(s.start - l.start) < interval * 2) {
+            if (l && similar(s.text, l.text, 0.82) && Math.abs(s.start - l.start) < interval * 2) {
                 l.end = Math.max(l.end, s.end);
-            }
-            else
+                if (s.conf > l.conf) {
+                    l.text = s.text;
+                    l.conf = s.conf;
+                }
+            } else {
                 final.push({
                     ...s
                 });
+            }
         }
+
         subs = final;
         updStats();
         setPhase(3, 'dn');
         setProg(100, 'Done!');
-        addLog(`Timeline: top=${tSubs.length} bot=${bSubs.length} final=${final.length} subtitles`);
+        addLog(`Timeline: top=${tSubs.length} bot=${bSubs.length} center=${cSubs.length} → final=${final.length} subtitles`);
         addLog(`Total time: ${fmtDur((Date.now() - startTime) / 1000)}`);
 
         $('lc').getContext('2d').clearRect(0, 0, $('lc').width, $('lc').height);
-
         await worker.terminate();
         running = false;
         $('sbtn').disabled = false;
         $('sLabel').textContent = 'Start Extraction';
 
         if (subs.length === 0) {
-            addLog('No subtitles found. Try: lower confidence to 40%, lower purity to 40%, check crop covers subtitles.');
+            addLog('No subtitles found. Try: lower confidence to 30%, lower purity to 40%, increase crop to 35%.');
         }
         showResults();
     };
@@ -1565,13 +1633,20 @@
     function showResults() {
         $('rc').style.display = 'block';
         $('rcnt').textContent = subs.length + ' subtitle' + (subs.length !== 1 ? 's' : '');
-        $('slist').innerHTML = subs.slice(0, 80).map((s, i) => {
-            return `<div class="si">
-      <div class="si-tc">#${i + 1} &nbsp;${fmtTC(s.start)} &rarr; ${fmtTC(s.end)}&nbsp;&nbsp;<span style="color:var(--gr);font-size:0.85em">${s.conf ? Math.round(s.conf) + '% conf' : ''}</span></div>
-      <div class="si-tx rtl">${s.text}</div>
-    </div>`
-            ;
-        }).join('') + (subs.length > 80 ? `<div style="text-align:center;color:var(--mu);font-size:0.75em;padding:8px">...and ${subs.length - 80} more</div>` : '');
+        $('slist').innerHTML = subs.slice(0, 80).map((s, i) => `
+    <div class="si">
+      <div class="si-tc">
+        <span>#${
+
+        i + 1} &nbsp;${fmtTC(s.start)} → ${fmtTC(s.end)}</span>
+        <span class="si-conf">${s.conf ? s.conf + '%' : ''}</span>
+      </div>
+      <div class="si-tx">${
+        s.text}</div>
+    </div>
+  `
+
+        ).join('') + (subs.length > 80 ? `<div style="text-align:center;color:var(--mu);font-size:0.75em;padding:8px">...and ${subs.length - 80} more in the downloaded file</div>` : '');
         $('rc').scrollIntoView({
             behavior: 'smooth',
             block: 'start'
