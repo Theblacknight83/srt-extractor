@@ -430,6 +430,90 @@
         transform: none;
     }
 
+    .ctrl-row {
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .pbtn {
+        padding: 12px;
+        border-radius: 10px;
+        font-size: 0.88em;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        transition: all .2s;
+    }
+
+    .pbtn.pause {
+        background: #1c2030;
+        color: var(--ac);
+        border: 1px solid var(--ac);
+    }
+
+    .pbtn.pause:hover {
+        background: #0a1f17;
+    }
+
+    .pbtn.pause.paused {
+        background: var(--ac);
+        color: #fff;
+    }
+
+    .pbtn.abort {
+        background: #1c0a0a;
+        color: var(--rd);
+        border: 1px solid var(--rd);
+    }
+
+    .pbtn.abort:hover {
+        background: #2a0a0a;
+    }
+
+    .mid-dl {
+        display: none;
+        margin-top: 10px;
+    }
+
+    .mid-dl-btn {
+        width: 100%;
+        padding: 11px;
+        border-radius: 10px;
+        font-size: 0.82em;
+        font-weight: 600;
+        cursor: pointer;
+        background: #0a1f17;
+        color: var(--ac);
+        border: 1px solid var(--ac);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        transition: all .2s;
+    }
+
+    .mid-dl-btn:hover {
+        background: var(--ac);
+        color: #fff;
+    }
+
+    .aborted-banner {
+        background: #1a0808;
+        border: 1px solid #3a1010;
+        border-radius: 10px;
+        padding: 12px 16px;
+        color: #f87171;
+        font-size: 0.8em;
+        margin-bottom: 12px;
+        display: none;
+    }
+
     .pc {
         display: none;
     }
@@ -898,6 +982,17 @@
             <span>▶</span>
             <span id="sLabel">Load a video to begin</span>
         </button>
+        <div class="ctrl-row" id="ctrlRow">
+            <button class="pbtn pause" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
+            <button class="pbtn abort" id="abortBtn" onclick="abortScan()">⏹ Abort</button>
+        </div>
+        <div class="mid-dl" id="midDl">
+            <button class="mid-dl-btn" onclick="downloadPartial()">
+                ⬇ Download partial SRT so far (
+                <span id="midCount">0</span>
+                 subtitles)
+            </button>
+        </div>
 
         <!-- PROGRESS -->
         <div class="card pc" id="pc" style="margin-top:14px;">
@@ -987,6 +1082,11 @@
 
         <!-- RESULTS -->
         <div class="card rc" id="rc" style="margin-top:14px;">
+            <div class="aborted-banner" id="abortedBanner">
+                ⏹ Scan was aborted — showing 
+                <span id="abortedCount">0</span>
+                 subtitles extracted before stop. You can download these now.
+            </div>
             <div class="rh">
                 <div class="rt">Extracted subtitles</div>
                 <div class="rbadge" id="rcnt">0</div>
@@ -1012,682 +1112,523 @@
     </canvas>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script>
-    const $ = id => document.getElementById(id);
-    let vFile = null,
-        subs = [],
-        worker = null,
-        running = false;
-    let totF = 0,
-        skipF = 0,
-        ocrF = 0,
-        rejF = 0,
-        startTime = 0;
-    let currentInterval = 0.5;
+    const $=id=>document.getElementById(id);
+    let vFile=null,subs=[],worker=null,running=false;
+    let totF=0,skipF=0,ocrF=0,rejF=0,startTime=0;
+    let currentInterval=0.5;
+    let paused=false,aborted=false;
+    let pauseResolve=null;
+
+    // ── PAUSE / ABORT / PARTIAL DOWNLOAD ──
+    function togglePause(){
+      paused=!paused;
+      const btn=$('pauseBtn');
+      if(paused){
+        btn.textContent='▶ Resume';btn.classList.add('paused');
+        $('pblbl').textContent='Paused — '+$('pblbl').textContent;
+        addLog('⏸ Paused at '+$('ltc').textContent);
+      } else {
+        btn.textContent='⏸ Pause';btn.classList.remove('paused');
+        addLog('▶ Resumed');
+        if(pauseResolve){pauseResolve();pauseResolve=null;}
+      }
+    }
+
+    function waitIfPaused(){
+      if(!paused)return Promise.resolve();
+      return new Promise(r=>{pauseResolve=r;});
+    }
+
+    function abortScan(){
+      if(!confirm('Abort scan? You can download the subtitles extracted so far.'))return;
+      aborted=true;paused=false;
+      if(pauseResolve){pauseResolve();pauseResolve=null;}
+      addLog('⏹ Aborting...');
+    }
+
+    function downloadPartial(){
+      if(!subs.length){alert('No subtitles extracted yet.');return;}
+      const c=subs.map((s,i)=>`${i+1}
+    ${fmtTC(s.start)} --> ${fmtTC(s.end)}
+    ${s.text}
+    `).join('
+    ');
+      const n=vFile?vFile.name.replace(/\.[^.]+$/,''):'subtitles';
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([c],{type:'text/plain;charset=utf-8'}));
+      a.download=n+'_partial.srt';a.click();
+      addLog('Downloaded partial SRT: '+subs.length+' subtitles');
+    }
 
     // ── MODE SELECTOR ──
-    function setMode(mode, el) {
-        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-        if (mode === 'quality') {
-            currentInterval = 0.5;
-            $('modeHint').textContent = '⚠ Quality mode: a 45-min episode takes ~20–30 min. Worth it for complete accurate results.';
-            $('modeHint').className = 'hint warn';
-            $('diff').value = 15;
-            $('diffV').textContent = '15';
-            $('conf').value = 45;
-            $('confV').textContent = '45%';
-        } else {
-            currentInterval = 1.0;
-            $('modeHint').textContent = '⚡ Fast mode: a 45-min episode takes ~10–15 min. May miss subtitles under 1s.';
-            $('modeHint').className = 'hint';
-            $('diff').value = 20;
-            $('diffV').textContent = '20';
-            $('conf').value = 50;
-            $('confV').textContent = '50%';
-        }
+    function setMode(mode, el){
+      document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+      el.classList.add('active');
+      if(mode==='quality'){
+        currentInterval=0.5;
+        $('modeHint').textContent='⚠ Quality mode: a 45-min episode takes ~20–30 min. Worth it for complete accurate results.';
+        $('modeHint').className='hint warn';
+        $('diff').value=15;$('diffV').textContent='15';
+        $('conf').value=45;$('confV').textContent='45%';
+      } else {
+        currentInterval=1.0;
+        $('modeHint').textContent='⚡ Fast mode: a 45-min episode takes ~10–15 min. May miss subtitles under 1s.';
+        $('modeHint').className='hint';
+        $('diff').value=20;$('diffV').textContent='20';
+        $('conf').value=50;$('confV').textContent='50%';
+      }
     }
 
-    $('crop').oninput = () => $('cropV').textContent = $('crop').value + '%';
-    $('diff').oninput = () => $('diffV').textContent = $('diff').value;
-    $('conf').oninput = () => $('confV').textContent = $('conf').value + '%';
+    $('crop').oninput=()=>$('cropV').textContent=$('crop').value+'%';
+    $('diff').oninput=()=>$('diffV').textContent=$('diff').value;
+    $('conf').oninput=()=>$('confV').textContent=$('conf').value+'%';
 
-    const dz = $('dz');
-    dz.ondragover = e => {
-        e.preventDefault();
-        dz.classList.add('over');
-    };
-    dz.ondragleave = () => dz.classList.remove('over');
-    dz.ondrop = e => {
-        e.preventDefault();
-        dz.classList.remove('over');
-        if (e.dataTransfer.files[0])
-            loadF(e.dataTransfer.files[0]);
-    };
-    $('fi').onchange = e => {
-        if (e.target.files[0])
-            loadF(e.target.files[0]);
+    const dz=$('dz');
+    dz.ondragover=e=>{e.preventDefault();dz.classList.add('over');};
+    dz.ondragleave=()=>dz.classList.remove('over');
+    dz.ondrop=e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])loadF(e.dataTransfer.files[0]);};
+    $('fi').onchange=e=>{if(e.target.files[0])loadF(e.target.files[0]);};
+
+    function loadF(f){
+      vFile=f;
+      $('fName').textContent=f.name;$('fSize').textContent=fmtB(f.size);
+      $('fInfo').style.display='flex';$('sbtn').disabled=false;
+      $('sLabel').textContent='Start Extraction';
+      addLog('Loaded: '+f.name+' ('+fmtB(f.size)+')');
+    }
+    $('fRm').onclick=e=>{
+      e.stopPropagation();vFile=null;
+      $('fInfo').style.display='none';$('liveWrap').style.display='none';
+      $('fi').value='';$('sbtn').disabled=true;$('sLabel').textContent='Load a video to begin';
     };
 
-    function loadF(f) {
-        vFile = f;
-        $('fName').textContent = f.name;
-        $('fSize').textContent = fmtB(f.size);
-        $('fInfo').style.display = 'flex';
-        $('sbtn').disabled = false;
-        $('sLabel').textContent = 'Start Extraction';
-        addLog('Loaded: ' + f.name + ' (' + fmtB(f.size) + ')');
+    function fmtB(b){return b>1e9?(b/1e9).toFixed(1)+' GB':b>1e6?(b/1e6).toFixed(1)+' MB':(b/1e3).toFixed(0)+' KB';}
+    function fmtTC(s){
+      const h=String(Math.floor(s/3600)).padStart(2,'0');
+      const m=String(Math.floor((s%3600)/60)).padStart(2,'0');
+      const sc=String(Math.floor(s%60)).padStart(2,'0');
+      const ms=String(Math.floor((s%1)*1000)).padStart(3,'0');
+      return`${h}:${m}:${sc},${ms}`;
     }
-    $('fRm').onclick = e => {
-        e.stopPropagation();
-        vFile = null;
-        $('fInfo').style.display = 'none';
-        $('liveWrap').style.display = 'none';
-        $('fi').value = '';
-        $('sbtn').disabled = true;
-        $('sLabel').textContent = 'Load a video to begin';
-    };
-
-    function fmtB(b) {
-        return b > 1e9 ? (b / 1e9).toFixed(1) + ' GB' : b > 1e6 ? (b / 1e6).toFixed(1) + ' MB' : (b / 1e3).toFixed(0) + ' KB';
-    }
-    function fmtTC(s) {
-        const h = String(Math.floor(s / 3600)).padStart(2, '0');
-        const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
-        const sc = String(Math.floor(s % 60)).padStart(2, '0');
-        const ms = String(Math.floor((s % 1) * 1000)).padStart(3, '0');
-        return `${h}:${m}:${sc},${ms}`;
-    }
-    function fmtDur(s) {
-        if (s < 60)
-            return Math.round(s) + 's';
-        const h = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        const sc = Math.round(s % 60);
-        if (h > 0)
-            return `${h}h ${m}m`;
-        return `${m}m ${sc}s`;
+    function fmtDur(s){
+      if(s<60)return Math.round(s)+'s';
+      const h=Math.floor(s/3600);
+      const m=Math.floor((s%3600)/60);
+      const sc=Math.round(s%60);
+      if(h>0)return`${h}h ${m}m`;
+      return`${m}m ${sc}s`;
     }
 
-    function addLog(m) {
-        const b = $('log');
-        b.innerHTML += `<div>> ${m}</div>`;
-        b.scrollTop = b.scrollHeight;
+    function addLog(m){const b=$('log');b.innerHTML+=`<div>> ${m}</div>`;b.scrollTop=b.scrollHeight;}
+    function setPhase(n,st){
+      const d=$('p'+n+'d');
+      d.className='phd '+(st==='act'?'act':st==='dn'?'dn':'');
+      if(st==='dn')d.textContent='✓';
     }
-    function setPhase(n, st) {
-        const d = $('p' + n + 'd');
-        d.className = 'phd ' + (st === 'act' ? 'act' : st === 'dn' ? 'dn' : '');
-        if (st === 'dn')
-            d.textContent = '✓';
+    function setProg(pct,lbl){
+      const p=Math.min(100,Math.round(pct));
+      $('pbf').style.width=p+'%';$('pbf').textContent=p+'%';
+      $('pbpct').textContent=p+'%';$('pblbl').textContent=lbl;
     }
-    function setProg(pct, lbl) {
-        const p = Math.min(100, Math.round(pct));
-        $('pbf').style.width = p + '%';
-        $('pbf').textContent = p + '%';
-        $('pbpct').textContent = p + '%';
-        $('pblbl').textContent = lbl;
-    }
-    function updStats() {
-        $('stF').textContent = totF;
-        $('stSk').textContent = skipF;
-        $('stOcr').textContent = ocrF;
-        $('stRej').textContent = rejF;
-        $('stSub').textContent = subs.length;
-        const el = (Date.now() - startTime) / 1000;
-        $('etaEl').textContent = fmtDur(el);
-        const done = skipF + ocrF;
-        if (done > 10 && totF > 0) {
-            const rate = done / el * 60;
-            $('etaSpd').textContent = Math.round(rate);
-            const rem = (totF - done) / done * el;
-            $('etaRm').textContent = fmtDur(rem);
-        }
-        $('etaSave').textContent = done > 0 ? Math.round(skipF / done * 100) + '%' : '—';
-        $('etaRej').textContent = ocrF > 0 ? Math.round(rejF / ocrF * 100) + '%' : '—';
+    function updStats(){
+      $('stF').textContent=totF;$('stSk').textContent=skipF;
+      $('stOcr').textContent=ocrF;$('stRej').textContent=rejF;$('stSub').textContent=subs.length;
+      const el=(Date.now()-startTime)/1000;
+      $('etaEl').textContent=fmtDur(el);
+      const done=skipF+ocrF;
+      if(done>10&&totF>0){
+        const rate=done/el*60;$('etaSpd').textContent=Math.round(rate);
+        const rem=(totF-done)/done*el;$('etaRm').textContent=fmtDur(rem);
+      }
+      $('etaSave').textContent=done>0?Math.round(skipF/done*100)+'%':'—';
+      $('etaRej').textContent=ocrF>0?Math.round(rejF/ocrF*100)+'%':'—';
     }
 
     // ── PIXEL DIFF ──
-    function pxDiff(ctxA, ctxB, w, h) {
-        const a = ctxA.getImageData(0, 0, w, h).data,
-            b = ctxB.getImageData(0, 0, w, h).data;
-        let d = 0,
-            c = 0;
-        for (let i = 0; i < a.length; i += 48) {
-            d += Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]);
-            c++;
-        }
-        return c > 0 ? d / c : 0;
+    function pxDiff(ctxA,ctxB,w,h){
+      const a=ctxA.getImageData(0,0,w,h).data,b=ctxB.getImageData(0,0,w,h).data;
+      let d=0,c=0;
+      for(let i=0;i<a.length;i+=48){d+=Math.abs(a[i]-b[i])+Math.abs(a[i+1]-b[i+1])+Math.abs(a[i+2]-b[i+2]);c++;}
+      return c>0?d/c:0;
     }
 
     // ── SHARPEN: 2× upscale + contrast ──
-    function sharpenCanvas(src) {
-        const dst = $('sharpCvs');
-        dst.width = src.width * 2;
-        dst.height = src.height * 2;
-        const ctx = dst.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(src, 0, 0, dst.width, dst.height);
-        const id = ctx.getImageData(0, 0, dst.width, dst.height);
-        const d = id.data;
-        // simple contrast boost
-        for (let i = 0; i < d.length; i += 4) {
-            d[i] = Math.min(255, Math.max(0, (d[i] - 128) * 1.4 + 128));
-            d[i + 1] = Math.min(255, Math.max(0, (d[i + 1] - 128) * 1.4 + 128));
-            d[i + 2] = Math.min(255, Math.max(0, (d[i + 2] - 128) * 1.4 + 128));
-        }
-        ctx.putImageData(id, 0, 0);
-        return dst;
+    function sharpenCanvas(src){
+      const dst=$('sharpCvs');
+      dst.width=src.width*2;dst.height=src.height*2;
+      const ctx=dst.getContext('2d');
+      ctx.imageSmoothingEnabled=false;
+      ctx.drawImage(src,0,0,dst.width,dst.height);
+      const id=ctx.getImageData(0,0,dst.width,dst.height);
+      const d=id.data;
+      // simple contrast boost
+      for(let i=0;i<d.length;i+=4){
+        d[i]=Math.min(255,Math.max(0,(d[i]-128)*1.4+128));
+        d[i+1]=Math.min(255,Math.max(0,(d[i+1]-128)*1.4+128));
+        d[i+2]=Math.min(255,Math.max(0,(d[i+2]-128)*1.4+128));
+      }
+      ctx.putImageData(id,0,0);
+      return dst;
     }
 
     // ── ARABIC PURITY ──
-    function arabicPurity(text) {
-        const ar = (text.match(/[\u0600-\u06FF]/g) || []).length;
-        const mn = (text.match(/[\u0600-\u06FF A-Za-z0-9]/g) || []).length;
-        return mn === 0 ? 0 : ar / mn;
+    function arabicPurity(text){
+      const ar=(text.match(/[\u0600-\u06FF]/g)||[]).length;
+      const mn=(text.match(/[\u0600-\u06FF A-Za-z0-9]/g)||[]).length;
+      return mn===0?0:ar/mn;
     }
 
     // ── NOISE DETECTION ──
-    function isNoise(text) {
-        if (!text || text.trim().length < 2)
-            return true;
-        const t = text.trim();
-        // single repeated chars
-        if (/^(.)\1{3,}$/.test(t.replace(/\s/g, '')))
-            return true;
-        // >40% symbol chars (not Arabic, not space, not common punct)
-        const sym = (t.match(/[^\u0600-\u06FF\s\u060C\u061B\u061F\.\,\!\?\:\-\[\]\(\)\<\>\/\u0030-\u0039A-Za-z]/g) || []).length;
-        if (sym / t.length > 0.4)
-            return true;
-        // more than 3 long Latin runs (not Korean drama names)
-        const latinRuns = (t.match(/[A-Za-z]{5,}/g) || []);
-        if (latinRuns.length > 2)
-            return true;
-        return false;
+    function isNoise(text){
+      if(!text||text.trim().length<2)return true;
+      const t=text.trim();
+      // single repeated chars
+      if(/^(.)\1{3,}$/.test(t.replace(/\s/g,'')))return true;
+      // >40% symbol chars (not Arabic, not space, not common punct)
+      const sym=(t.match(/[^\u0600-\u06FF\s\u060C\u061B\u061F\.\,\!\?\:\-\[\]\(\)\<\>\/\u0030-\u0039A-Za-z]/g)||[]).length;
+      if(sym/t.length>0.4)return true;
+      // more than 3 long Latin runs (not Korean drama names)
+      const latinRuns=(t.match(/[A-Za-z]{5,}/g)||[]);
+      if(latinRuns.length>2)return true;
+      return false;
     }
 
     // ── SYMBOL STRIP: remove noise chars that survive OCR ──
-    function stripSymbols(text) {
-        return text
-
-        .// remove specific noise chars identified in analysis: " ' * + # = @ ~ ^ \ | _ ` 
-        replace(/["'*+#=@~^\\|_`<>]/g, ' ')
-
-        .// remove isolated single non-Arabic chars surrounded by spaces
-        replace(/(?<!\S)[^أ-ي\u0600-\u06FF\s][^أ-ي\u0600-\u06FF\s]?(?!\S)/g, ' ')
-
-        .// remove long Latin sequences (keep short ones like NIS, USB)
-        replace(/[A-Za-z]{4,}/g, ' ')
-
-        .// remove standalone numbers that aren't part of Arabic text
-        replace(/(?<!\S)\d+(?!\S)/g, ' ')
-
-        .// collapse multiple spaces
-        replace(/\s+/g, ' ')
+    function stripSymbols(text){
+      return text
+        // remove specific noise chars identified in analysis: " ' * + # = @ ~ ^ \ | _ ` 
+        .replace(/["'*+#=@~^\\|_`<>]/g,' ')
+        // remove isolated single non-Arabic chars surrounded by spaces
+        .replace(/(?<!\S)[^أ-ي\u0600-\u06FF\s][^أ-ي\u0600-\u06FF\s]?(?!\S)/g,' ')
+        // remove long Latin sequences (keep short ones like NIS, USB)
+        .replace(/[A-Za-z]{4,}/g,' ')
+        // remove standalone numbers that aren't part of Arabic text
+        .replace(/(?<!\S)\d+(?!\S)/g,' ')
+        // collapse spaces within each line but preserve newlines
+        .split('\n')
+        .map(line=>line.replace(/\s+/g,' ').trim())
+        .filter(line=>line.length>0)
+        .join('\n')
         .trim();
     }
 
     // ── GET CONFIDENCE ──
-    function getConf(data) {
-        if (!data || !data.words || !data.words.length)
-            return 0;
-        const c = data.words.map(w => w.confidence).filter(v => v > 0);
-        return c.length ? c.reduce((a, b) => a + b, 0) / c.length : 0;
+    function getConf(data){
+      if(!data||!data.words||!data.words.length)return 0;
+      const c=data.words.map(w=>w.confidence).filter(v=>v>0);
+      return c.length?c.reduce((a,b)=>a+b,0)/c.length:0;
     }
 
-    function seekTo(v, t) {
-        return new Promise(r => {
-            const h = () => {
-                v.removeEventListener('seeked', h);
-                r();
-            };
-            v.addEventListener('seeked', h);
-            v.currentTime = t;
-        });
+    function seekTo(v,t){
+      return new Promise(r=>{const h=()=>{v.removeEventListener('seeked',h);r();};v.addEventListener('seeked',h);v.currentTime=t;});
     }
 
     // ── SIMILARITY ──
-    function norm(t) {
-        return (t || '').replace(/[\u0617-\u061A\u064B-\u065F\u06D6-\u06ED]/g, '').replace(/\s+/g, ' ').trim();
+    function norm(t){return(t||'').replace(/[\u0617-\u061A\u064B-\u065F\u06D6-\u06ED]/g,'').replace(/\s+/g,' ').trim();}
+    function similar(a,b,thr=0.72){
+      a=norm(a);b=norm(b);
+      if(!a&&!b)return true;if(!a||!b)return false;if(a===b)return true;
+      const L=a.length>=b.length?a:b,S=a.length>=b.length?b:a;
+      return(L.length-editD(L,S))/L.length>=thr;
     }
-    function similar(a, b, thr=0.72) {
-        a = norm(a);
-        b = norm(b);
-        if (!a && !b)
-            return true;
-        if (!a || !b)
-            return false;
-        if (a === b)
-            return true;
-        const L = a.length >= b.length ? a : b,
-            S = a.length >= b.length ? b : a;
-        return (L.length - editD(L, S)) / L.length >= thr;
-    }
-    function editD(a, b) {
-        const m = a.length,
-            n = b.length;
-        if (!m)
-            return n;
-        if (!n)
-            return m;
-        const dp = Array.from({
-            length: m + 1
-        }, (_, i) => Array.from({
-            length: n + 1
-        }, (_, j) => i === 0 ? j : j === 0 ? i : 0));
-        for (let i = 1; i <= m; i++)
-            for (let j = 1; j <= n; j++)
-                dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-        return dp[m][n];
+    function editD(a,b){
+      const m=a.length,n=b.length;if(!m)return n;if(!n)return m;
+      const dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));
+      for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+      return dp[m][n];
     }
 
     // ── OVERLAY ──
-    function drawOverlay(canvas, vw, vh, crop, zone, foundZone) {
-        const ctx = canvas.getContext('2d');
-        canvas.width = vw;
-        canvas.height = vh;
-        const ch = Math.max(1, Math.floor(vh * crop));
-        const pad = Math.floor(vh * 0.035);
-        ctx.clearRect(0, 0, vw, vh);
-        const drawZ = (y, label, active) => {
-            ctx.strokeStyle = active ? 'rgba(16,185,129,0.9)' : 'rgba(16,185,129,0.2)';
-            ctx.lineWidth = active ? 2 : 1;
-            ctx.setLineDash(active ? [] : [4, 4]);
-            ctx.strokeRect(2, y + 2, vw - 4, ch - 4);
-            ctx.setLineDash([]);
-            ctx.fillStyle = active ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.02)';
-            ctx.fillRect(2, y + 2, vw - 4, ch - 4);
-            if (active) {
-                ctx.fillStyle = 'rgba(16,185,129,0.9)';
-                ctx.font = 'bold 10px monospace';
-                ctx.fillText(label, 8, y + 15);
-            }
-        };
-        const showBot = zone === 'bottom' || zone === 'both' || zone === 'all';
-        const showTop = zone === 'top' || zone === 'both' || zone === 'all';
-        const showCtr = zone === 'all';
-        if (showTop)
-            drawZ(0, '▶ TOP', foundZone === 'top');
-        if (showCtr) {
-            const cy = Math.floor((vh - ch) / 2);
-            drawZ(cy, '▶ CENTER', foundZone === 'center');
+    function drawOverlay(canvas,vw,vh,crop,zone,foundZone){
+      const ctx=canvas.getContext('2d');
+      canvas.width=vw;canvas.height=vh;
+      const ch=Math.max(1,Math.floor(vh*crop));
+      const pad=Math.floor(vh*0.035);
+      ctx.clearRect(0,0,vw,vh);
+      const drawZ=(y,label,active)=>{
+        ctx.strokeStyle=active?'rgba(16,185,129,0.9)':'rgba(16,185,129,0.2)';
+        ctx.lineWidth=active?2:1;ctx.setLineDash(active?[]:[4,4]);
+        ctx.strokeRect(2,y+2,vw-4,ch-4);ctx.setLineDash([]);
+        ctx.fillStyle=active?'rgba(16,185,129,0.08)':'rgba(16,185,129,0.02)';
+        ctx.fillRect(2,y+2,vw-4,ch-4);
+        if(active){
+          ctx.fillStyle='rgba(16,185,129,0.9)';ctx.font='bold 10px monospace';
+          ctx.fillText(label,8,y+15);
         }
-        if (showBot)
-            drawZ(Math.max(0, vh - ch - pad), '▶ BOTTOM', foundZone === 'bottom' || foundZone === 'bottom2');
+      };
+      const showBot=zone==='bottom'||zone==='both'||zone==='all';
+      const showTop=zone==='top'||zone==='both'||zone==='all';
+      const showCtr=zone==='all';
+      if(showTop)drawZ(0,'▶ TOP',foundZone==='top');
+      if(showCtr){const cy=Math.floor((vh-ch)/2);drawZ(cy,'▶ CENTER',foundZone==='center');}
+      if(showBot)drawZ(Math.max(0,vh-ch-pad),'▶ BOTTOM',foundZone==='bottom'||foundZone==='bottom2');
     }
 
-    $('sbtn').onclick = async () => {
-        if (running || !vFile)
-            return;
-        running = true;
-        subs = [];
-        skipF = 0;
-        ocrF = 0;
-        rejF = 0;
-        startTime = Date.now();
-        $('sbtn').disabled = true;
-        $('sLabel').textContent = 'Processing...';
-        $('pc').style.display = 'block';
-        $('rc').style.display = 'none';
-        $('log').innerHTML = '';
-        $('pc').scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
+    $('sbtn').onclick=async()=>{
+      if(running||!vFile)return;
+      running=true;paused=false;aborted=false;subs=[];skipF=0;ocrF=0;rejF=0;startTime=Date.now();
+      $('sbtn').disabled=true;$('sLabel').textContent='Processing...';
+      $('ctrlRow').style.display='grid';
+      $('midDl').style.display='block';
+      $('abortedBanner').style.display='none';..';
+      $('pc').style.display='block';$('rc').style.display='none';
+      $('log').innerHTML='';
+      $('pc').scrollIntoView({behavior:'smooth',block:'start'});
+
+      const interval=currentInterval;
+      const crop=parseInt($('crop').value)/100;
+      const diffT=parseFloat($('diff').value);
+      const confT=parseInt($('conf').value);
+      const purityT=parseFloat($('purity').value);
+      const doSharpen=parseInt($('sharpen').value)===1;
+      const zone=$('zone').value;
+
+      const useTop=zone==='top'||zone==='both'||zone==='all';
+      const useBot=zone==='bottom'||zone==='both'||zone==='all';
+      const useCtr=zone==='all';
+
+      addLog(`Mode: ${interval}s interval | zone:${zone} | crop:${Math.round(crop*100)}% | conf≥${confT}% | purity≥${Math.round(purityT*100)}% | sharpen:${doSharpen}`);
+
+      // Phase 1 — load Tesseract Arabic only
+      setPhase(1,'act');setProg(2,'Loading Arabic OCR engine...');
+      try{
+        worker=await Tesseract.createWorker('ara',1,{
+          logger:m=>{
+            if(m.status==='loading language traineddata')
+              $('p1s').textContent='Downloading Arabic model: '+Math.round(m.progress*100)+'%';
+            if(m.status==='initializing api')$('p1s').textContent='Initialising OCR...';
+          }
         });
+      }catch(e){addLog('ERROR: '+e.message);running=false;$('sbtn').disabled=false;return;}
+      await worker.setParameters({tessedit_pageseg_mode:'6'});
+      setPhase(1,'dn');addLog('Arabic OCR ready.');
 
-        const interval = currentInterval;
-        const crop = parseInt($('crop').value) / 100;
-        const diffT = parseFloat($('diff').value);
-        const confT = parseInt($('conf').value);
-        const purityT = parseFloat($('purity').value);
-        const doSharpen = parseInt($('sharpen').value) === 1;
-        const zone = $('zone').value;
+      // Phase 2 — scan
+      setPhase(2,'act');
+      const video=document.createElement('video');
+      video.src=URL.createObjectURL(vFile);video.muted=true;
+      await new Promise(r=>{video.onloadedmetadata=r;});
+      const dur=video.duration;
 
-        const useTop = zone === 'top' || zone === 'both' || zone === 'all';
-        const useBot = zone === 'bottom' || zone === 'both' || zone === 'all';
-        const useCtr = zone === 'all';
+      $('lv').src=URL.createObjectURL(vFile);
+      $('liveWrap').style.display='block';
+      const lcvs=$('lc'),offCvs=$('offscreen'),offCtx=offCvs.getContext('2d');
 
-        addLog(`Mode: ${interval}s interval | zone:${zone} | crop:${Math.round(crop * 100)}% | conf≥${confT}% | purity≥${Math.round(purityT * 100)}% | sharpen:${doSharpen}`);
+      // build time array — quality mode uses 0.5s
+      const times=[];
+      for(let t=0;t<dur;t+=interval)times.push(parseFloat(t.toFixed(3)));
+      totF=times.length;updStats();
+      addLog(`Duration: ${fmtDur(dur)} | ${times.length} frames at ${interval}s interval`);
+      addLog(`Estimated time: ${fmtDur(times.length * 0.6)} (approx)`);
 
-        // Phase 1 — load Tesseract Arabic only
-        setPhase(1, 'act');
-        setProg(2, 'Loading Arabic OCR engine...');
-        try {
-            worker = await Tesseract.createWorker('ara', 1, {
-                logger: m => {
-                    if (m.status === 'loading language traineddata')
-                        $('p1s').textContent = 'Downloading Arabic model: ' + Math.round(m.progress * 100) + '%';
-                    if (m.status === 'initializing api')
-                        $('p1s').textContent = 'Initialising OCR...';
-                }
-            });
-        } catch (e) {
-            addLog('ERROR: ' + e.message);
-            running = false;
-            $('sbtn').disabled = false;
-            return;
+      // per-zone state
+      const zones={};
+      if(useTop)zones.top={prev:null,has:false};
+      if(useBot)zones.bottom={prev:null,has:false};
+      if(useCtr)zones.center={prev:null,has:false};
+
+      const zoneResults={top:[],bottom:[],center:[]};
+
+      const processZone=async(zname,yOff,h,t)=>{
+        const zCtx=document.createElement('canvas').getContext('2d');
+        zCtx.canvas.width=offCvs.width;zCtx.canvas.height=h;
+        zCtx.drawImage(offCvs,0,yOff,offCvs.width,h,0,0,offCvs.width,h);
+
+        const zs=zones[zname];
+        const pd=zs.has?pxDiff(zs.prev,zCtx,offCvs.width,h):999;
+        if(pd<=diffT){skipF++;return null;}
+
+        ocrF++;
+        const src=doSharpen?sharpenCanvas(zCtx.canvas):zCtx.canvas;
+        const{data}=await worker.recognize(src);
+        // preserve newlines for 2-line subtitles — collapse multiple blank lines but keep single \n
+        const rawText=(data.text||'')
+          .replace(/\r/g,'')
+          .replace(/\n{3,}/g,'\n')      // max 2 lines
+          .replace(/[ \t]+/g,' ')        // collapse spaces/tabs but NOT newlines
+          .trim();
+        const confidence=getConf(data);
+
+        // update prev
+        if(!zs.prev){zs.prev=document.createElement('canvas').getContext('2d');zs.prev.canvas.width=offCvs.width;zs.prev.canvas.height=h;}
+        zs.prev.canvas.width=offCvs.width;zs.prev.canvas.height=h;
+        zs.prev.drawImage(zCtx.canvas,0,0);
+        zs.has=true;
+
+        // FILTER 1: confidence
+        if(confidence<confT){rejF++;return null;}
+        // FILTER 2: noise pattern
+        if(isNoise(rawText)){rejF++;return null;}
+        // FILTER 3: Arabic purity
+        if(arabicPurity(rawText)<purityT){rejF++;return null;}
+
+        // CLEAN: strip symbol noise per line, preserve 2-line structure
+        const lines=rawText.split('\n').map(l=>stripSymbols(l)).filter(l=>l.length>=2);
+        if(!lines.length){rejF++;return null;}
+        // dedupe adjacent identical lines (OCR sometimes doubles a line)
+        const dedupedLines=lines.filter((l,i)=>i===0||l!==lines[i-1]);
+        const cleaned=dedupedLines.slice(0,2).join('\n'); // max 2 lines
+        if(!cleaned||cleaned.replace(/\n/g,'').length<3){rejF++;return null;}
+
+        return{t,text:cleaned,conf:Math.round(confidence)};
+      };
+
+      for(let i=0;i<times.length;i++){
+        const t=times[i];
+        // wait if paused
+        await waitIfPaused();
+        // check if aborted
+        if(aborted)break;
+        await seekTo(video,t);
+        offCvs.width=video.videoWidth||1280;offCvs.height=video.videoHeight||720;
+        offCtx.drawImage(video,0,0);
+        const VW=offCvs.width,VH=offCvs.height;
+        const CH=Math.max(1,Math.floor(VH*crop));
+        const PAD=Math.floor(VH*0.035);
+        $('lv').currentTime=t;
+        $('ltc').textContent=fmtTC(t).split(',')[0];
+
+        let foundZone=null,foundTxt='';
+
+        if(useBot){
+          const yOff=Math.max(0,VH-CH-PAD);
+          const h=Math.min(CH+PAD,VH);
+          const r=await processZone('bottom',yOff,h,t);
+          if(r){zoneResults.bottom.push(r);foundZone='bottom';foundTxt=r.text;}
         }
-        await worker.setParameters({
-            tessedit_pageseg_mode: '6'
-        });
-        setPhase(1, 'dn');
-        addLog('Arabic OCR ready.');
+        if(useTop){
+          const r=await processZone('top',0,CH,t);
+          if(r){zoneResults.top.push(r);if(!foundZone){foundZone='top';foundTxt=r.text;}}
+        }
+        if(useCtr){
+          const yOff=Math.floor((VH-CH)/2);
+          const r=await processZone('center',yOff,CH,t);
+          if(r){zoneResults.center.push(r);if(!foundZone){foundZone='center';foundTxt=r.text;}}
+        }
 
-        // Phase 2 — scan
-        setPhase(2, 'act');
-        const video = document.createElement('video');
-        video.src = URL.createObjectURL(vFile);
-        video.muted = true;
-        await new Promise(r => {
-            video.onloadedmetadata = r;
-        });
-        const dur = video.duration;
+        drawOverlay(lcvs,VW,VH,crop,zone,foundZone);
+        if(foundTxt){
+          $('ltxt').innerHTML=foundTxt.replace(/\n/g,'<br>');$('ltxt').style.display='block';
+        } else {
+          $('ltxt').style.display='none';
+        }
 
-        $('lv').src = URL.createObjectURL(vFile);
-        $('liveWrap').style.display = 'block';
-        const lcvs = $('lc'),
-            offCvs = $('offscreen'),
-            offCtx = offCvs.getContext('2d');
-
-        // build time array — quality mode uses 0.5s
-        const times = [];
-        for (let t = 0; t < dur; t += interval)
-            times.push(parseFloat(t.toFixed(3)));
-        totF = times.length;
         updStats();
-        addLog(`Duration: ${fmtDur(dur)} | ${times.length} frames at ${interval}s interval`);
-        addLog(`Estimated time: ${fmtDur(times.length * 0.6)} (approx)`);
+        $('midCount').textContent=subs.length;
+        const pct=8+((i+1)/times.length)*80;
+        setProg(pct,`Frame ${i+1}/${times.length} — ${fmtTC(t).split(',')[0]}`);
+        $('p2s').textContent=`Frame ${i+1}/${times.length} · OCR:${ocrF} · Skip:${skipF} · Reject:${rejF}`;
+        if(i%50===0&&i>0)addLog(`t=${fmtDur(t)} | OCR:${ocrF} skip:${skipF} rej:${rejF} subs:${subs.length}`);
+      }
 
-        // per-zone state
-        const zones = {};
-        if (useTop)
-            zones.top = {
-                prev: null,
-                has: false
-            };
-        if (useBot)
-            zones.bottom = {
-                prev: null,
-                has: false
-            };
-        if (useCtr)
-            zones.center = {
-                prev: null,
-                has: false
-            };
+      if(aborted){
+        setPhase(2,'act');
+        $('p2s').textContent='Aborted — building timeline from what was captured...';
+        addLog('⏹ Aborted. Building timeline from '+ocrF+' OCR calls made before stop...');
+      } else {
+        setPhase(2,'dn');
+        addLog(`Scan done. OCR:${ocrF} Skipped:${skipF} Rejected:${rejF} (${Math.round(rejF/Math.max(ocrF,1)*100)}% rejection rate)`);
+      }
 
-        const zoneResults = {
-            top: [],
-            bottom: [],
-            center: []
-        };
+      // Phase 3 — build timeline
+      setPhase(3,'act');setProg(90,'Building subtitle timeline...');
 
-        const processZone = async (zname, yOff, h, t) => {
-            const zCtx = document.createElement('canvas').getContext('2d');
-            zCtx.canvas.width = offCvs.width;
-            zCtx.canvas.height = h;
-            zCtx.drawImage(offCvs, 0, yOff, offCvs.width, h, 0, 0, offCvs.width, h);
-
-            const zs = zones[zname];
-            const pd = zs.has ? pxDiff(zs.prev, zCtx, offCvs.width, h) : 999;
-            if (pd <= diffT) {
-                skipF++;
-                return null;
-            }
-
-            ocrF++;
-            const src = doSharpen ? sharpenCanvas(zCtx.canvas) : zCtx.canvas;
-            const {data} = await worker.recognize(src);
-            const rawText = (data.text || '').replace(/\r/g, '').replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
-            const confidence = getConf(data);
-
-            // update prev
-            if (!zs.prev) {
-                zs.prev = document.createElement('canvas').getContext('2d');
-                zs.prev.canvas.width = offCvs.width;
-                zs.prev.canvas.height = h;
-            }
-            zs.prev.canvas.width = offCvs.width;
-            zs.prev.canvas.height = h;
-            zs.prev.drawImage(zCtx.canvas, 0, 0);
-            zs.has = true;
-
-            // FILTER 1: confidence
-            if (confidence < confT) {
-                rejF++;
-                return null;
-            }
-            // FILTER 2: noise pattern
-            if (isNoise(rawText)) {
-                rejF++;
-                return null;
-            }
-            // FILTER 3: Arabic purity
-            if (arabicPurity(rawText) < purityT) {
-                rejF++;
-                return null;
-            }
-
-            // CLEAN: strip symbol noise
-            const cleaned = stripSymbols(rawText);
-            if (!cleaned || cleaned.length < 3) {
-                rejF++;
-                return null;
-            }
-
-            return {
-                t,
-                text: cleaned,
-                conf: Math.round(confidence)
-            };
-        };
-
-        for (let i = 0; i < times.length; i++) {
-            const t = times[i];
-            await seekTo(video, t);
-            offCvs.width = video.videoWidth || 1280;
-            offCvs.height = video.videoHeight || 720;
-            offCtx.drawImage(video, 0, 0);
-            const VW = offCvs.width,
-                VH = offCvs.height;
-            const CH = Math.max(1, Math.floor(VH * crop));
-            const PAD = Math.floor(VH * 0.035);
-            $('lv').currentTime = t;
-            $('ltc').textContent = fmtTC(t).split(',')[0];
-
-            let foundZone = null,
-                foundTxt = '';
-
-            if (useBot) {
-                const yOff = Math.max(0, VH - CH - PAD);
-                const h = Math.min(CH + PAD, VH);
-                const r = await processZone('bottom', yOff, h, t);
-                if (r) {
-                    zoneResults.bottom.push(r);
-                    foundZone = 'bottom';
-                    foundTxt = r.text;
-                }
-            }
-            if (useTop) {
-                const r = await processZone('top', 0, CH, t);
-                if (r) {
-                    zoneResults.top.push(r);
-                    if (!foundZone) {
-                        foundZone = 'top';
-                        foundTxt = r.text;
-                    }
-                }
-            }
-            if (useCtr) {
-                const yOff = Math.floor((VH - CH) / 2);
-                const r = await processZone('center', yOff, CH, t);
-                if (r) {
-                    zoneResults.center.push(r);
-                    if (!foundZone) {
-                        foundZone = 'center';
-                        foundTxt = r.text;
-                    }
-                }
-            }
-
-            drawOverlay(lcvs, VW, VH, crop, zone, foundZone);
-            if (foundTxt) {
-                $('ltxt').textContent = foundTxt;
-                $('ltxt').style.display = 'block';
-            } else {
-                $('ltxt').style.display = 'none';
-            }
-
-            updStats();
-            const pct = 8 + ((i + 1) / times.length) * 80;
-            setProg(pct, `Frame ${i + 1}/${times.length} — ${fmtTC(t).split(',')[0]}`);
-            $('p2s').textContent = `Frame ${i + 1}/${times.length} · OCR:${ocrF} · Skip:${skipF} · Reject:${rejF}`;
-            if (i % 50 === 0 && i > 0)
-                addLog(`t=${fmtDur(t)} | OCR:${ocrF} skip:${skipF} rej:${rejF} subs:${subs.length}`);
+      function buildTL(frames,intv){
+        const out=[];let cur=null,last='';
+        for(const r of frames){
+          const tx=r.text.trim();
+          if(!tx||tx.length<3){if(cur){out.push(cur);cur=null;last='';}continue;}
+          // strip newlines for similarity comparison only
+          if(cur&&similar(tx.replace(/\n/g,' '),last.replace(/\n/g,' '))){
+            cur.end=r.t+intv;
+            // keep highest confidence text version
+            if(r.conf>cur.conf){cur.text=tx;cur.conf=r.conf;}
+          } else {
+            if(cur)out.push(cur);
+            cur={start:r.t,end:r.t+intv,text:tx,conf:r.conf};
+            last=tx;
+          }
         }
+        if(cur)out.push(cur);
+        return out;
+      }
 
-        setPhase(2, 'dn');
-        addLog(`Scan done. OCR:${ocrF} Skipped:${skipF} Rejected:${rejF} (${Math.round(rejF / Math.max(ocrF, 1) * 100)}% rejection rate)`);
+      const tSubs=useTop?buildTL(zoneResults.top,interval):[];
+      const bSubs=useBot?buildTL(zoneResults.bottom,interval):[];
+      const cSubs=useCtr?buildTL(zoneResults.center,interval):[];
+      const merged=[...tSubs,...bSubs,...cSubs].sort((a,b)=>a.start-b.start);
 
-        // Phase 3 — build timeline
-        setPhase(3, 'act');
-        setProg(90, 'Building subtitle timeline...');
-
-        function buildTL(frames, intv) {
-            const out = [];
-            let cur = null,
-                last = '';
-            for (const r of frames) {
-                const tx = r.text.trim();
-                if (!tx || tx.length < 3) {
-                    if (cur) {
-                        out.push(cur);
-                        cur = null;
-                        last = '';
-                    }
-                    continue;
-                }
-                if (cur && similar(tx, last)) {
-                    cur.end = r.t + intv;
-                    // keep highest confidence text version
-                    if (r.conf > cur.conf) {
-                        cur.text = tx;
-                        cur.conf = r.conf;
-                    }
-                } else {
-                    if (cur)
-                        out.push(cur);
-                    cur = {
-                        start: r.t,
-                        end: r.t + intv,
-                        text: tx,
-                        conf: r.conf
-                    };
-                    last = tx;
-                }
-            }
-            if (cur)
-                out.push(cur);
-            return out;
+      // deduplicate across zones
+      const final=[];
+      for(const s of merged){
+        const l=final[final.length-1];
+        if(l&&similar(s.text,l.text,0.82)&&Math.abs(s.start-l.start)<interval*2){
+          l.end=Math.max(l.end,s.end);
+          if(s.conf>l.conf){l.text=s.text;l.conf=s.conf;}
+        } else {
+          final.push({...s});
         }
+      }
 
-        const tSubs = useTop ? buildTL(zoneResults.top, interval) : [];
-        const bSubs = useBot ? buildTL(zoneResults.bottom, interval) : [];
-        const cSubs = useCtr ? buildTL(zoneResults.center, interval) : [];
-        const merged = [...tSubs, ...bSubs, ...cSubs].sort((a, b) => a.start - b.start);
+      subs=final;updStats();
+      setPhase(3,'dn');setProg(100,'Done!');
+      addLog(`Timeline: top=${tSubs.length} bot=${bSubs.length} center=${cSubs.length} → final=${final.length} subtitles`);
+      addLog(`Total time: ${fmtDur((Date.now()-startTime)/1000)}`);
 
-        // deduplicate across zones
-        const final = [];
-        for (const s of merged) {
-            const l = final[final.length - 1];
-            if (l && similar(s.text, l.text, 0.82) && Math.abs(s.start - l.start) < interval * 2) {
-                l.end = Math.max(l.end, s.end);
-                if (s.conf > l.conf) {
-                    l.text = s.text;
-                    l.conf = s.conf;
-                }
-            } else {
-                final.push({
-                    ...s
-                });
-            }
-        }
+      $('lc').getContext('2d').clearRect(0,0,$('lc').width,$('lc').height);
+      await worker.terminate();
+      running=false;paused=false;aborted=false;
+      $('sbtn').disabled=false;$('sLabel').textContent='Start Extraction';
+      $('ctrlRow').style.display='none';
+      $('midDl').style.display='none';
+      $('pauseBtn').textContent='⏸ Pause';$('pauseBtn').classList.remove('paused');
 
-        subs = final;
-        updStats();
-        setPhase(3, 'dn');
-        setProg(100, 'Done!');
-        addLog(`Timeline: top=${tSubs.length} bot=${bSubs.length} center=${cSubs.length} → final=${final.length} subtitles`);
-        addLog(`Total time: ${fmtDur((Date.now() - startTime) / 1000)}`);
-
-        $('lc').getContext('2d').clearRect(0, 0, $('lc').width, $('lc').height);
-        await worker.terminate();
-        running = false;
-        $('sbtn').disabled = false;
-        $('sLabel').textContent = 'Start Extraction';
-
-        if (subs.length === 0) {
-            addLog('No subtitles found. Try: lower confidence to 30%, lower purity to 40%, increase crop to 35%.');
-        }
-        showResults();
+      if(subs.length===0){
+        addLog('No subtitles found. Try: lower confidence to 30%, lower purity to 40%, increase crop to 35%.');
+      }
+      showResults(aborted);
     };
 
-    function showResults() {
-        $('rc').style.display = 'block';
-        $('rcnt').textContent = subs.length + ' subtitle' + (subs.length !== 1 ? 's' : '');
-        $('slist').innerHTML = subs.slice(0, 80).map((s, i) => `
-    <div class="si">
-      <div class="si-tc">
-        <span>#${
-
-        i + 1} &nbsp;${fmtTC(s.start)} → ${fmtTC(s.end)}</span>
-        <span class="si-conf">${s.conf ? s.conf + '%' : ''}</span>
-      </div>
-      <div class="si-tx">${
-        s.text}</div>
-    </div>
-  `
-
-        ).join('') + (subs.length > 80 ? `<div style="text-align:center;color:var(--mu);font-size:0.75em;padding:8px">...and ${subs.length - 80} more in the downloaded file</div>` : '');
-        $('rc').scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-        });
+    function showResults(wasAborted){
+      $('rc').style.display='block';
+      $('rcnt').textContent=subs.length+' subtitle'+(subs.length!==1?'s':'');
+      if(wasAborted){
+        $('abortedBanner').style.display='block';
+        $('abortedCount').textContent=subs.length;
+      } else {
+        $('abortedBanner').style.display='none';
+      }
+      $('slist').innerHTML=subs.slice(0,80).map((s,i)=>`
+        <div class="si">
+          <div class="si-tc">
+            <span>#${i+1} &nbsp;${fmtTC(s.start)} → ${fmtTC(s.end)}</span>
+            <span class="si-conf">${s.conf?s.conf+'%':''}</span>
+          </div>
+          <div class="si-tx">${s.text.replace(/\n/g,'<br>')}</div>
+        </div>
+      `).join('')+(subs.length>80?`<div style="text-align:center;color:var(--mu);font-size:0.75em;padding:8px">...and ${subs.length-80} more in the downloaded file</div>`:'');
+      $('rc').scrollIntoView({behavior:'smooth',block:'start'});
     }
 
-    $('dlSrt').onclick = () => {
-        const c = subs.map((s, i) => `${i + 1}\n${fmtTC(s.start)} --> ${fmtTC(s.end)}\n${s.text}\n`).join('\n');
-        dl(c, '.srt');
+    $('dlSrt').onclick=()=>{
+      const c=subs.map((s,i)=>`${i+1}\n${fmtTC(s.start)} --> ${fmtTC(s.end)}\n${s.text}\n`).join('\n');
+      dl(c,'.srt');
     };
-    $('dlTxt').onclick = () => dl(subs.map(s => s.text).join('\n'), '.txt');
-    function dl(c, ext) {
-        const n = vFile ? vFile.name.replace(/\.[^.]+$/, '') : 'subtitles';
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([c], {
-            type: 'text/plain;charset=utf-8'
-        }));
-        a.download = n + ext;
-        a.click();
+    $('dlTxt').onclick=()=>dl(subs.map(s=>s.text).join('\n'),'.txt');
+    function dl(c,ext){
+      const n=vFile?vFile.name.replace(/\.[^.]+$/,''):'subtitles';
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([c],{type:'text/plain;charset=utf-8'}));
+      a.download=n+ext;a.click();
     }
-    $('restart').onclick = () => {
-        subs = [];
-        vFile = null;
-        $('fInfo').style.display = 'none';
-        $('liveWrap').style.display = 'none';
-        $('fi').value = '';
-        $('pc').style.display = 'none';
-        $('rc').style.display = 'none';
-        $('sbtn').disabled = true;
-        $('sLabel').textContent = 'Load a video to begin';
-        $('log').innerHTML = '';
-        ['1', '2', '3'].forEach(n => {
-            const d = $('p' + n + 'd');
-            d.className = 'phd';
-            d.textContent = n;
-        });
-        setProg(0, 'Initialising...');
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
+    $('restart').onclick=()=>{
+      subs=[];vFile=null;paused=false;aborted=false;
+      $('fInfo').style.display='none';$('liveWrap').style.display='none';
+      $('fi').value='';$('pc').style.display='none';$('rc').style.display='none';
+      $('sbtn').disabled=true;$('sLabel').textContent='Load a video to begin';
+      $('log').innerHTML='';
+      ['1','2','3'].forEach(n=>{const d=$('p'+n+'d');d.className='phd';d.textContent=n;});
+      setProg(0,'Initialising...');window.scrollTo({top:0,behavior:'smooth'});
     };
     </script>
 </body>
