@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRT Extractor — H.S.Abuzeid</title>
+<style>
+:root {
+  --bg: #0d0f18;
+  --surface: #151824;
+  --surface2: #1c2030;
+  --border: #252a3a;
+  --accent: #f59e0b;
+  --accent2: #d97706;
+  --green: #10b981;
+  --red: #ef4444;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --muted2: #94a3b8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 24px 16px 48px;
+}
+.page { max-width: 820px; margin: 0 auto; }
+
+/* HEADER */
+.header { text-align: center; margin-bottom: 36px; padding-top: 16px; }
+.header .logo {
+  display: inline-flex; align-items: center; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 10px 20px; margin-bottom: 20px;
+}
+.logo-icon {
+  width: 36px; height: 36px; background: var(--accent);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.logo-text { font-size: 0.85em; color: var(--muted2); line-height: 1.4; text-align: left; }
+.logo-text strong { color: var(--text); display: block; font-size: 1.1em; }
+h1 { font-size: 2em; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+h1 span { color: var(--accent); }
+.tagline { color: var(--muted); font-size: 0.88em; }
+.pills { display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.pill {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 12px; font-size: 0.72em;
+  color: var(--muted2); letter-spacing: 0.3px;
+}
+.pill.green { color: var(--green); border-color: #064e3b; background: #022c22; }
+
+/* CARD */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 24px; margin-bottom: 16px;
+}
+.card-title {
+  font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--muted); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+}
+.card-title::before {
+  content: ''; display: block; width: 3px; height: 14px;
+  background: var(--accent); border-radius: 2px;
+}
+
+/* DROP ZONE */
+.dropzone {
+  border: 2px dashed var(--border); border-radius: 12px;
+  padding: 48px 24px; text-align: center; cursor: pointer;
+  transition: all 0.2s; background: var(--bg); position: relative;
+}
+.dropzone:hover, .dropzone.over {
+  border-color: var(--accent); background: #1a1200;
+}
+.dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.drop-icon {
+  width: 56px; height: 56px; background: #1a1200; border: 1px solid #3a2a00;
+  border-radius: 14px; display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px; font-size: 24px;
+}
+.dropzone h3 { font-size: 1em; color: var(--text); margin-bottom: 6px; }
+.dropzone p { font-size: 0.8em; color: var(--muted); }
+.file-info {
+  display: none; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px; margin-top: 14px;
+  display: none; align-items: center; gap: 14px;
+}
+.file-icon {
+  width: 40px; height: 40px; background: #1a1200; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0; border: 1px solid #3a2a00;
+}
+.file-meta { flex: 1; min-width: 0; }
+.file-name { font-size: 0.88em; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-size { font-size: 0.75em; color: var(--muted); margin-top: 2px; }
+.file-remove {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 18px; padding: 4px; line-height: 1; flex-shrink: 0;
+}
+.file-remove:hover { color: var(--red); }
+
+/* VIDEO PREVIEW */
+#videoPreview {
+  width: 100%; border-radius: 10px; display: none;
+  max-height: 280px; background: #000; margin-top: 14px;
+}
+
+/* SETTINGS GRID */
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.setting { display: flex; flex-direction: column; gap: 6px; }
+.setting label { font-size: 0.75em; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.5px; }
+select, input[type=range] {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); padding: 9px 12px;
+  font-size: 0.85em; outline: none; width: 100%; cursor: pointer;
+}
+select:focus { border-color: var(--accent); }
+.range-row { display: flex; align-items: center; gap: 10px; }
+.range-row input { flex: 1; padding: 0; }
+.range-val {
+  min-width: 36px; text-align: center; font-size: 0.82em;
+  color: var(--accent); font-weight: 600; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px;
+}
+
+/* ZONE VISUAL */
+.zone-vis {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+  height: 100px; position: relative; overflow: hidden; margin-top: 6px;
+}
+.zone-bar {
+  position: absolute; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7em; font-weight: 600; letter-spacing: 0.5px; transition: all 0.2s;
+}
+#topBar { top: 0; background: rgba(245,158,11,0.15); border-bottom: 1px solid rgba(245,158,11,0.3); color: var(--accent); }
+#botBar { bottom: 0; background: rgba(245,158,11,0.15); border-top: 1px solid rgba(245,158,11,0.3); color: var(--accent); }
+.zone-mid { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); color: var(--border); font-size: 0.7em; }
+
+/* LANG CHIPS */
+.lang-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.lang-chip {
+  padding: 5px 12px; border-radius: 20px; font-size: 0.75em; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg); color: var(--muted2);
+  transition: all 0.15s; user-select: none;
+}
+.lang-chip.active { background: #1a1200; border-color: var(--accent); color: var(--accent); }
+
+/* START BUTTON */
+.start-btn {
+  width: 100%; padding: 15px; background: var(--accent);
+  color: #000; border: none; border-radius: 12px; font-size: 1em;
+  font-weight: 700; cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.start-btn:hover:not(:disabled) { background: var(--accent2); transform: translateY(-1px); }
+.start-btn:disabled { background: var(--surface2); color: var(--muted); cursor: not-allowed; transform: none; }
+.start-btn .btn-icon { font-size: 1.1em; }
+
+/* PROGRESS */
+.progress-card { display: none; }
+.phase-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.phase {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+}
+.phase-dot {
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75em; font-weight: 700; flex-shrink: 0; transition: all 0.3s;
+}
+.phase-dot.active { border-color: var(--accent); color: var(--accent); animation: pulse 1.5s infinite; }
+.phase-dot.done { border-color: var(--green); background: var(--green); color: #fff; }
+.phase-dot.wait { color: var(--muted); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.phase-info { flex: 1; }
+.phase-label { font-size: 0.82em; font-weight: 500; }
+.phase-sub { font-size: 0.72em; color: var(--muted); margin-top: 2px; }
+.main-prog { margin-bottom: 14px; }
+.prog-track {
+  background: var(--bg); border-radius: 20px; height: 10px;
+  overflow: hidden; border: 1px solid var(--border); margin-bottom: 6px;
+}
+.prog-fill {
+  height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 20px; transition: width 0.4s; width: 0%;
+}
+.prog-row { display: flex; justify-content: space-between; }
+.prog-label { font-size: 0.75em; color: var(--muted); }
+.prog-pct { font-size: 0.75em; color: var(--accent); font-weight: 600; }
+.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 14px; }
+.stat-box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center; }
+.stat-n { font-size: 1.2em; font-weight: 700; color: var(--accent); }
+.stat-l { font-size: 0.62em; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.4px; }
+.log-box {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; height: 72px; overflow-y: auto;
+  font-size: 0.7em; font-family: 'Courier New', monospace; color: #4ade80; line-height: 1.7;
+}
+
+/* RESULTS */
+.results-card { display: none; }
+.results-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+}
+.results-title { font-size: 1.05em; font-weight: 600; }
+.results-count {
+  background: #022c22; border: 1px solid #064e3b; color: var(--green);
+  border-radius: 20px; padding: 4px 12px; font-size: 0.75em; font-weight: 600;
+}
+.sub-list { max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.sub-list::-webkit-scrollbar { width: 4px; }
+.sub-list::-webkit-scrollbar-track { background: var(--bg); }
+.sub-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.sub-item {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; border-left: 3px solid var(--accent);
+}
+.sub-tc { font-size: 0.7em; color: var(--accent); font-family: monospace; margin-bottom: 5px; }
+.sub-text { font-size: 0.9em; line-height: 1.7; }
+.sub-text.rtl { direction: rtl; text-align: right; }
+.dl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dl-btn {
+  padding: 12px; border-radius: 10px; font-size: 0.88em; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.dl-btn.primary { background: var(--accent); color: #000; border: none; }
+.dl-btn.primary:hover { background: var(--accent2); }
+.dl-btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.dl-btn.secondary:hover { background: #1a1200; }
+.restart-btn {
+  width: 100%; padding: 11px; margin-top: 10px; background: transparent;
+  border: 1px solid var(--border); border-radius: 10px; color: var(--muted);
+  font-size: 0.82em; cursor: pointer; transition: all 0.15s;
+}
+.restart-btn:hover { border-color: var(--muted); color: var(--text); }
+
+/* FOOTER */
+.footer { text-align: center; margin-top: 32px; color: var(--muted); font-size: 0.75em; }
+.footer a { color: var(--accent); text-decoration: none; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">🎬</div>
+      <div class="logo-text">
+        <strong>SRT Extractor</strong>
+        H.S.Abuzeid — Media Tools
+      </div>
+    </div>
+    <h1>Burnt-on <span>Subtitle</span> Extractor</h1>
+    <p class="tagline">Extract hardcoded subtitles from any video — runs entirely in your browser</p>
+    <div class="pills">
+      <span class="pill green">✓ 100% Free</span>
+      <span class="pill green">✓ No API Key</span>
+      <span class="pill green">✓ Works Offline</span>
+      <span class="pill">Arabic + English</span>
+      <span class="pill">Top &amp; Bottom zones</span>
+    </div>
+  </div>
+
+  <!-- STEP 1: UPLOAD -->
+  <div class="card">
+    <div class="card-title">Step 1 — Upload Video</div>
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" accept="video/*">
+      <div class="drop-icon">📁</div>
+      <h3>Drop your video here or click to browse</h3>
+      <p>MP4, MKV, AVI, MOV — any resolution — processed locally</p>
+    </div>
+    <div class="file-info" id="fileInfo">
+      <div class="file-icon">🎞</div>
+      <div class="file-meta">
+        <div class="file-name" id="fileName">—</div>
+        <div class="file-size" id="fileSize">—</div>
+      </div>
+      <button class="file-remove" id="fileRemove" title="Remove">✕</button>
+    </div>
+    <video id="videoPreview" controls></video>
+  </div>
+
+  <!-- STEP 2: SETTINGS -->
+  <div class="card">
+    <div class="card-title">Step 2 — Settings</div>
+    <div class="settings-grid">
+
+      <div class="setting">
+        <label>Frame interval</label>
+        <select id="interval">
+          <option value="0.5">0.5s — maximum accuracy</option>
+          <option value="0.8" selected>0.8s — recommended</option>
+          <option value="1.2">1.2s — balanced</option>
+          <option value="2.0">2.0s — fast</option>
+          <option value="3.0">3.0s — very fast</option>
+        </select>
+      </div>
+
+      <div class="setting">
+        <label>Subtitle zone</label>
+        <select id="zone">
+          <option value="both" selected>Both (top + bottom)</option>
+          <option value="bottom">Bottom only</option>
+          <option value="top">Top only</option>
+        </select>
+        <div class="zone-vis">
+          <div class="zone-bar" id="topBar" style="height:22%">TOP</div>
+          <div class="zone-mid">— frame —</div>
+          <div class="zone-bar" id="botBar" style="height:22%">BOTTOM</div>
+        </div>
+      </div>
+
+      <div class="setting">
+        <label>Crop height per zone</label>
+        <div class="range-row">
+          <input type="range" id="cropRatio" min="10" max="40" value="22" step="1">
+          <span class="range-val" id="cropVal">22%</span>
+        </div>
+        <div style="font-size:0.72em;color:var(--muted);margin-top:4px;">
+          Height of region scanned for subtitles
+        </div>
+      </div>
+
+      <div class="setting">
+        <label>Change sensitivity</label>
+        <div class="range-row">
+          <input type="range" id="diffThresh" min="1" max="20" value="5" step="1">
+          <span class="range-val" id="diffVal">5</span>
+        </div>
+        <div style="font-size:0.72em;color:var(--muted);margin-top:4px;">
+          Lower = catch more changes. Higher = skip more frames
+        </div>
+      </div>
+
+      <div class="setting">
+        <label>Language</label>
+        <div class="lang-chips">
+          <div class="lang-chip active" data-lang="ara">عربي Arabic</div>
+          <div class="lang-chip active" data-lang="eng">English</div>
+        </div>
+        <input type="hidden" id="langValue" value="ara+eng">
+      </div>
+
+      <div class="setting">
+        <label>Min subtitle length (chars)</label>
+        <select id="minLen">
+          <option value="1">1 — catch everything incl. single chars</option>
+          <option value="2" selected>2 — recommended</option>
+          <option value="4">4 — words only</option>
+          <option value="8">8 — sentences only</option>
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- STEP 3: START -->
+  <button class="start-btn" id="startBtn" disabled>
+    <span class="btn-icon">▶</span>
+    <span id="startLabel">Load a video to begin</span>
+  </button>
+
+  <!-- PROGRESS -->
+  <div class="card progress-card" id="progressCard" style="margin-top:16px;">
+    <div class="card-title">Processing</div>
+
+    <div class="phase-list">
+      <div class="phase" id="ph1">
+        <div class="phase-dot wait" id="ph1dot">1</div>
+        <div class="phase-info">
+          <div class="phase-label">Loading Tesseract OCR engine</div>
+          <div class="phase-sub" id="ph1sub">Arabic + English language models</div>
+        </div>
+      </div>
+      <div class="phase" id="ph2">
+        <div class="phase-dot wait" id="ph2dot">2</div>
+        <div class="phase-info">
+          <div class="phase-label">Scanning frames</div>
+          <div class="phase-sub" id="ph2sub">Pixel-diff filtering active — skipping identical frames</div>
+        </div>
+      </div>
+      <div class="phase" id="ph3">
+        <div class="phase-dot wait" id="ph3dot">3</div>
+        <div class="phase-info">
+          <div class="phase-label">Building subtitle timeline</div>
+          <div class="phase-sub" id="ph3sub">Merging and deduplicating entries</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-prog">
+      <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+      <div class="prog-row">
+        <span class="prog-label" id="progLabel">Initialising...</span>
+        <span class="prog-pct" id="progPct">0%</span>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-n" id="sFrames">—</div><div class="stat-l">Frames</div></div>
+      <div class="stat-box"><div class="stat-n" id="sSkipped">—</div><div class="stat-l">Skipped</div></div>
+      <div class="stat-box"><div class="stat-n" id="sOcr">—</div><div class="stat-l">OCR runs</div></div>
+      <div class="stat-box"><div class="stat-n" id="sSubs">—</div><div class="stat-l">Subtitles</div></div>
+    </div>
+
+    <div class="log-box" id="logBox"></div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="card results-card" id="resultsCard" style="margin-top:16px;">
+    <div class="results-header">
+      <div class="results-title">Extracted Subtitles</div>
+      <div class="results-count" id="resultsCount">0 subtitles</div>
+    </div>
+    <div class="sub-list" id="subList"></div>
+    <div class="dl-grid">
+      <button class="dl-btn primary" id="dlSrt">⬇ Download .srt</button>
+      <button class="dl-btn secondary" id="dlTxt">⬇ Download .txt</button>
+    </div>
+    <button class="restart-btn" id="restartBtn">↺ Process another video</button>
+  </div>
+
+  <div class="footer">
+    <p>H.S.Abuzeid property · © 2025 All rights reserved · Powered by <a href="https://tesseract.projectnaptha.com/" target="_blank">Tesseract.js</a></p>
+  </div>
+
+</div>
+
+<canvas id="cvs" style="display:none"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+
+let videoFile = null, subtitles = [], worker = null, isRunning = false;
+let totalFrames = 0, skippedFrames = 0, ocrRuns = 0;
+
+// ── LANG CHIPS ──
+document.querySelectorAll('.lang-chip').forEach(chip => {
+  chip.onclick = () => {
+    chip.classList.toggle('active');
+    const active = [...document.querySelectorAll('.lang-chip.active')].map(c => c.dataset.lang);
+    $('langValue').value = active.length ? active.join('+') : 'ara';
+  };
+});
+
+// ── CROP RANGE ──
+$('cropRatio').oninput = () => {
+  const v = $('cropRatio').value;
+  $('cropVal').textContent = v + '%';
+  $('topBar').style.height = v + '%';
+  $('botBar').style.height = v + '%';
+};
+
+// ── DIFF RANGE ──
+$('diffThresh').oninput = () => { $('diffVal').textContent = $('diffThresh').value; };
+
+// ── DROP ZONE ──
+const dz = $('dropzone');
+dz.ondragover = e => { e.preventDefault(); dz.classList.add('over'); };
+dz.ondragleave = () => dz.classList.remove('over');
+dz.ondrop = e => { e.preventDefault(); dz.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) loadFile(f); };
+$('fileInput').onchange = e => { if (e.target.files[0]) loadFile(e.target.files[0]); };
+
+function loadFile(f) {
+  if (!f.type.startsWith('video/') && !f.name.match(/\.(mp4|mkv|avi|mov|webm|ts|mxf)$/i)) {
+    alert('Please select a video file.');
+    return;
+  }
+  videoFile = f;
+  const url = URL.createObjectURL(f);
+  $('videoPreview').src = url;
+  $('videoPreview').style.display = 'block';
+  $('fileName').textContent = f.name;
+  $('fileSize').textContent = formatBytes(f.size);
+  $('fileInfo').style.display = 'flex';
+  $('startBtn').disabled = false;
+  $('startLabel').textContent = 'Start Extraction';
+  log('Loaded: ' + f.name + ' (' + formatBytes(f.size) + ')');
+}
+
+$('fileRemove').onclick = e => {
+  e.stopPropagation();
+  videoFile = null;
+  $('videoPreview').style.display = 'none';
+  $('fileInfo').style.display = 'none';
+  $('fileInput').value = '';
+  $('startBtn').disabled = true;
+  $('startLabel').textContent = 'Load a video to begin';
+};
+
+function formatBytes(b) {
+  if (b > 1e9) return (b / 1e9).toFixed(1) + ' GB';
+  if (b > 1e6) return (b / 1e6).toFixed(1) + ' MB';
+  return (b / 1e3).toFixed(0) + ' KB';
+}
+
+// ── LOGGING ──
+function log(msg) {
+  const b = $('logBox');
+  const line = document.createElement('div');
+  line.textContent = '> ' + msg;
+  b.appendChild(line);
+  b.scrollTop = b.scrollHeight;
+}
+
+// ── TIMECODE ──
+function fmt(s) {
+  const h = String(Math.floor(s / 3600)).padStart(2, '0');
+  const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+  const sc = String(Math.floor(s % 60)).padStart(2, '0');
+  const ms = String(Math.floor((s % 1) * 1000)).padStart(3, '0');
+  return `${h}:${m}:${sc},${ms}`;
+}
+
+// ── PHASE UI ──
+function setPhase(n, state) {
+  const dot = $('ph' + n + 'dot');
+  dot.className = 'phase-dot ' + state;
+  if (state === 'done') dot.textContent = '✓';
+}
+
+function setProgress(pct, label) {
+  $('progFill').style.width = Math.round(pct) + '%';
+  $('progPct').textContent = Math.round(pct) + '%';
+  $('progLabel').textContent = label;
+}
+
+function updateStats() {
+  $('sFrames').textContent = totalFrames;
+  $('sSkipped').textContent = skippedFrames;
+  $('sOcr').textContent = ocrRuns;
+  $('sSubs').textContent = subtitles.length;
+}
+
+// ── PIXEL DIFF ──
+function getPixelDiff(ctxA, ctxB, w, h) {
+  const dA = ctxA.getImageData(0, 0, w, h).data;
+  const dB = ctxB.getImageData(0, 0, w, h).data;
+  let diff = 0, count = 0;
+  const step = 20;
+  for (let i = 0; i < dA.length; i += step * 4) {
+    diff += Math.abs(dA[i] - dB[i]) + Math.abs(dA[i + 1] - dB[i + 1]) + Math.abs(dA[i + 2] - dB[i + 2]);
+    count++;
+  }
+  return count > 0 ? diff / count : 0;
+}
+
+// ── SEEK ──
+function seekTo(video, t) {
+  return new Promise(resolve => {
+    const handler = () => { video.removeEventListener('seeked', handler); resolve(); };
+    video.addEventListener('seeked', handler);
+    video.currentTime = t;
+  });
+}
+
+// ── CLEAN TEXT ──
+function cleanText(t) {
+  return (t || '').replace(/\r/g, '').replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function normalise(t) {
+  return t.replace(/[\u0617-\u061A\u064B-\u065F\u06D6-\u06ED]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function isSimilar(a, b, thresh = 0.78) {
+  a = normalise(a); b = normalise(b);
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const longer = a.length >= b.length ? a : b;
+  const shorter = a.length >= b.length ? b : a;
+  if (longer.length === 0) return true;
+  const dist = editDist(longer, shorter);
+  return (longer.length - dist) / longer.length >= thresh;
+}
+
+function editDist(a, b) {
+  const m = a.length, n = b.length;
+  if (m === 0) return n; if (n === 0) return m;
+  const dp = Array.from({ length: m + 1 }, (_, i) =>
+    Array.from({ length: n + 1 }, (_, j) => i === 0 ? j : j === 0 ? i : 0));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+  return dp[m][n];
+}
+
+// ── MAIN ──
+$('startBtn').onclick = async () => {
+  if (isRunning || !videoFile) return;
+  isRunning = true;
+  subtitles = []; totalFrames = 0; skippedFrames = 0; ocrRuns = 0;
+
+  $('startBtn').disabled = true;
+  $('startLabel').textContent = 'Processing...';
+  $('progressCard').style.display = 'block';
+  $('resultsCard').style.display = 'none';
+  $('logBox').innerHTML = '';
+  $('progressCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  const interval = parseFloat($('interval').value);
+  const cropRatio = parseInt($('cropRatio').value) / 100;
+  const diffThresh = parseFloat($('diffThresh').value);
+  const minLen = parseInt($('minLen').value);
+  const zone = $('zone').value;
+  const lang = $('langValue').value || 'ara+eng';
+  const useTop = zone === 'top' || zone === 'both';
+  const useBot = zone === 'bottom' || zone === 'both';
+
+  log(`Settings: interval=${interval}s zone=${zone} crop=${Math.round(cropRatio * 100)}% diff=${diffThresh} lang=${lang}`);
+
+  // ── PHASE 1: Load Tesseract ──
+  setPhase(1, 'active');
+  $('ph1sub').textContent = 'Downloading language models (first run only)...';
+  setProgress(2, 'Loading OCR engine...');
+
+  try {
+    worker = await Tesseract.createWorker(lang, 1, {
+      logger: m => {
+        if (m.status === 'loading tesseract core') $('ph1sub').textContent = 'Loading Tesseract core...';
+        if (m.status === 'loading language traineddata') $('ph1sub').textContent = 'Loading language data: ' + (m.progress * 100).toFixed(0) + '%';
+        if (m.status === 'initializing api') $('ph1sub').textContent = 'Initialising OCR API...';
+      }
+    });
+  } catch (e) {
+    log('Error loading Tesseract: ' + e.message);
+    isRunning = false;
+    $('startBtn').disabled = false;
+    $('startLabel').textContent = 'Start Extraction';
+    return;
+  }
+
+  await worker.setParameters({ tessedit_pageseg_mode: '6' });
+  setPhase(1, 'done');
+  log('Tesseract loaded. Language: ' + lang);
+
+  // ── PHASE 2: Frame scan ──
+  setPhase(2, 'active');
+  setProgress(10, 'Starting frame scan...');
+
+  const video = document.createElement('video');
+  video.src = URL.createObjectURL(videoFile);
+  video.muted = true;
+  await new Promise(r => { video.onloadedmetadata = r; });
+
+  const duration = video.duration;
+  const mainCanvas = $('cvs');
+  const mainCtx = mainCanvas.getContext('2d');
+
+  const times = [];
+  for (let t = 0; t < duration; t += interval) times.push(parseFloat(t.toFixed(3)));
+  totalFrames = times.length;
+  updateStats();
+  log(`Video duration: ${duration.toFixed(1)}s | ${times.length} frames to sample`);
+
+  const prevTopCtx = document.createElement('canvas').getContext('2d');
+  const prevBotCtx = document.createElement('canvas').getContext('2d');
+  let hasPrevTop = false, hasPrevBot = false;
+
+  const topResults = [], botResults = [];
+
+  for (let i = 0; i < times.length; i++) {
+    const t = times[i];
+    await seekTo(video, t);
+
+    mainCanvas.width = video.videoWidth;
+    mainCanvas.height = video.videoHeight;
+    mainCtx.drawImage(video, 0, 0);
+
+    const vW = video.videoWidth;
+    const vH = video.videoHeight;
+    const cropH = Math.max(1, Math.floor(vH * cropRatio));
+
+    // top zone
+    if (useTop) {
+      const topCtx = document.createElement('canvas').getContext('2d');
+      topCtx.canvas.width = vW; topCtx.canvas.height = cropH;
+      topCtx.drawImage(mainCanvas, 0, 0, vW, cropH, 0, 0, vW, cropH);
+      prevTopCtx.canvas.width = vW; prevTopCtx.canvas.height = cropH;
+
+      const diff = hasPrevTop ? getPixelDiff(prevTopCtx, topCtx, vW, cropH) : 999;
+      if (diff > diffThresh) {
+        ocrRuns++;
+        const { data: { text } } = await worker.recognize(topCtx.canvas);
+        const clean = cleanText(text);
+        if (clean.length >= minLen) topResults.push({ t, text: clean });
+        prevTopCtx.drawImage(topCtx.canvas, 0, 0);
+        hasPrevTop = true;
+      } else {
+        skippedFrames++;
+      }
+    }
+
+    // bottom zone
+    if (useBot) {
+      const botCtx = document.createElement('canvas').getContext('2d');
+      botCtx.canvas.width = vW; botCtx.canvas.height = cropH;
+      botCtx.drawImage(mainCanvas, 0, vH - cropH, vW, cropH, 0, 0, vW, cropH);
+      prevBotCtx.canvas.width = vW; prevBotCtx.canvas.height = cropH;
+
+      const diff = hasPrevBot ? getPixelDiff(prevBotCtx, botCtx, vW, cropH) : 999;
+      if (diff > diffThresh) {
+        ocrRuns++;
+        const { data: { text } } = await worker.recognize(botCtx.canvas);
+        const clean = cleanText(text);
+        if (clean.length >= minLen) botResults.push({ t, text: clean });
+        prevBotCtx.drawImage(botCtx.canvas, 0, 0);
+        hasPrevBot = true;
+      } else {
+        skippedFrames++;
+      }
+    }
+
+    updateStats();
+    const pct = 10 + (i / times.length) * 75;
+    setProgress(pct, `Scanning frame ${i + 1} of ${times.length}`);
+    $('ph2sub').textContent = `Frame ${i + 1}/${times.length} · OCR: ${ocrRuns} · Skipped: ${skippedFrames}`;
+    if (i % 20 === 0) log(`t=${t.toFixed(1)}s · OCR: ${ocrRuns} · Skipped: ${skippedFrames} · Subs so far: ${subtitles.length}`);
+  }
+
+  setPhase(2, 'done');
+  log(`Scan complete. ${ocrRuns} OCR calls, ${skippedFrames} frames skipped.`);
+
+  // ── PHASE 3: Build timeline ──
+  setPhase(3, 'active');
+  setProgress(88, 'Building subtitle timeline...');
+
+  function buildTimeline(frames) {
+    const subs = []; let cur = null, lastText = '';
+    for (const r of frames) {
+      const txt = r.text.trim();
+      if (!txt || txt.length < minLen) { if (cur) { subs.push(cur); cur = null; lastText = ''; } continue; }
+      if (cur && isSimilar(txt, lastText)) {
+        cur.end = r.t + interval;
+      } else {
+        if (cur) subs.push(cur);
+        cur = { start: r.t, end: r.t + interval, text: txt };
+        lastText = txt;
+      }
+    }
+    if (cur) subs.push(cur);
+    return subs;
+  }
+
+  const topSubs = useTop ? buildTimeline(topResults) : [];
+  const botSubs = useBot ? buildTimeline(botResults) : [];
+  const merged = [...topSubs, ...botSubs].sort((a, b) => a.start - b.start);
+
+  const deduped = [];
+  for (const s of merged) {
+    const last = deduped[deduped.length - 1];
+    if (last && isSimilar(s.text, last.text, 0.85) && Math.abs(s.start - last.start) < interval * 2) {
+      last.end = Math.max(last.end, s.end);
+    } else {
+      deduped.push({ ...s });
+    }
+  }
+
+  subtitles = deduped;
+  updateStats();
+  setPhase(3, 'done');
+  setProgress(100, `Done — ${subtitles.length} subtitles extracted`);
+  log(`Timeline built. Top: ${topSubs.length} · Bot: ${botSubs.length} · Final: ${subtitles.length}`);
+
+  await worker.terminate();
+  isRunning = false;
+
+  if (subtitles.length === 0) {
+    log('No subtitles found. Try: lower diff threshold, wider crop %, or check video has visible text.');
+  }
+
+  showResults();
+};
+
+function showResults() {
+  $('resultsCard').style.display = 'block';
+  $('resultsCount').textContent = subtitles.length + ' subtitle' + (subtitles.length !== 1 ? 's' : '');
+  const preview = subtitles.slice(0, 80);
+  $('subList').innerHTML = preview.map((s, i) => {
+    const isRtl = /[\u0600-\u06FF]/.test(s.text);
+    return `<div class="sub-item">
+      <div class="sub-tc">#${i + 1} &nbsp; ${fmt(s.start)} &rarr; ${fmt(s.end)}</div>
+      <div class="sub-text ${isRtl ? 'rtl' : ''}">${s.text}</div>
+    </div>`;
+  }).join('') + (subtitles.length > 80 ? `<div style="text-align:center;color:var(--muted);font-size:0.78em;padding:10px">... and ${subtitles.length - 80} more in the downloaded file</div>` : '');
+  $('resultsCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+$('dlSrt').onclick = () => {
+  const srt = subtitles.map((s, i) => `${i + 1}\n${fmt(s.start)} --> ${fmt(s.end)}\n${s.text}\n`).join('\n');
+  download(srt, '.srt');
+};
+$('dlTxt').onclick = () => {
+  const txt = subtitles.map(s => s.text).join('\n');
+  download(txt, '.txt');
+};
+
+function download(content, ext) {
+  const name = videoFile ? videoFile.name.replace(/\.[^.]+$/, '') : 'subtitles';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
+  a.download = name + ext;
+  a.click();
+}
+
+$('restartBtn').onclick = () => {
+  subtitles = []; videoFile = null;
+  $('videoPreview').style.display = 'none';
+  $('fileInfo').style.display = 'none';
+  $('fileInput').value = '';
+  $('progressCard').style.display = 'none';
+  $('resultsCard').style.display = 'none';
+  $('startBtn').disabled = true;
+  $('startLabel').textContent = 'Load a video to begin';
+  $('logBox').innerHTML = '';
+  ['1','2','3'].forEach(n => { $('ph'+n+'dot').className='phase-dot wait'; $('ph'+n+'dot').textContent=n; });
+  setProgress(0, 'Initialising...');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+</script>
+</body>
+</html>
