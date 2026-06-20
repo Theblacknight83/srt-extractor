@@ -1,658 +1,1619 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Burnt-on SRT Extractor</title>
-<style>
-:root{--bg:#0d0f18;--s1:#151824;--s2:#1c2030;--bd:#252a3a;--ac:#f59e0b;--ac2:#d97706;--gr:#10b981;--rd:#ef4444;--tx:#e2e8f0;--mu:#64748b;--mu2:#94a3b8;}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding:20px 16px 48px;}
-.page{max-width:860px;margin:0 auto;}
-.hdr{text-align:center;padding:20px 0 28px;}
-.hdr h1{font-size:1.9em;font-weight:700;margin-bottom:6px;}
-.hdr h1 span{color:var(--ac);}
-.hdr p{color:var(--mu);font-size:0.85em;}
-.pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px;}
-.pill{background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:3px 11px;font-size:0.7em;color:var(--mu2);}
-.pill.g{color:var(--gr);border-color:#064e3b;background:#022c22;}
-.card{background:var(--s1);border:1px solid var(--bd);border-radius:16px;padding:22px;margin-bottom:14px;}
-.ct{font-size:0.72em;text-transform:uppercase;letter-spacing:1px;color:var(--mu);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
-.ct::before{content:'';display:block;width:3px;height:13px;background:var(--ac);border-radius:2px;}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burnt-on SRT Extractor</title>
+    <style>
+    :root {
+        --bg: #0d0f18;
+        --s1: #151824;
+        --s2: #1c2030;
+        --bd: #252a3a;
+        --ac: #10b981;
+        --ac2: #059669;
+        --gr: #10b981;
+        --rd: #ef4444;
+        --tx: #e2e8f0;
+        --mu: #64748b;
+        --mu2: #94a3b8;
+    }
 
-/* DROP */
-.dz{border:2px dashed var(--bd);border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;background:var(--bg);transition:all .2s;position:relative;}
-.dz:hover,.dz.over{border-color:var(--ac);background:#160e00;}
-.dz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-.dz-icon{font-size:2.2em;margin-bottom:10px;}
-.dz h3{font-size:0.95em;margin-bottom:4px;}
-.dz p{font-size:0.78em;color:var(--mu);}
-.fi{display:none;align-items:center;gap:12px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin-top:12px;}
-.fi-icon{width:36px;height:36px;background:#160e00;border:1px solid #3a2a00;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
-.fi-meta{flex:1;min-width:0;}
-.fi-name{font-size:0.85em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.fi-size{font-size:0.72em;color:var(--mu);margin-top:2px;}
-.fi-rm{background:none;border:none;color:var(--mu);cursor:pointer;font-size:16px;padding:4px;}
-.fi-rm:hover{color:var(--rd);}
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
 
-/* LIVE PREVIEW */
-.live-wrap{position:relative;background:#000;border-radius:10px;overflow:hidden;margin-top:12px;display:none;border:1px solid var(--bd);}
-#liveVideo{width:100%;display:block;max-height:240px;object-fit:contain;}
-#liveCanvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
-.live-badge{position:absolute;top:10px;left:10px;background:rgba(239,68,68,0.9);color:#fff;font-size:0.65em;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:1px;display:flex;align-items:center;gap:5px;}
-.live-badge::before{content:'';width:6px;height:6px;background:#fff;border-radius:50%;animation:blink 1s infinite;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-.live-tc{position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.7);color:var(--ac);font-size:0.7em;font-family:monospace;padding:3px 8px;border-radius:4px;}
-.live-txt{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.75);padding:8px 12px;font-size:0.85em;text-align:center;min-height:36px;direction:rtl;}
+    body {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--tx);
+        min-height: 100vh;
+        padding: 20px 16px 48px;
+    }
 
-/* SETTINGS */
-.sg{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-label.lbl{display:block;font-size:0.72em;color:var(--mu2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;}
-select{width:100%;padding:9px 11px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;color:var(--tx);font-size:0.85em;outline:none;cursor:pointer;}
-select:focus{border-color:var(--ac);}
-.rr{display:flex;align-items:center;gap:10px;}
-.rr input{flex:1;}
-input[type=range]{accent-color:var(--ac);}
-.rv{min-width:38px;text-align:center;font-size:0.8em;color:var(--ac);font-weight:600;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:3px 6px;}
-.zv{background:var(--bg);border:1px solid var(--bd);border-radius:8px;height:80px;position:relative;overflow:hidden;margin-top:5px;}
-.zb{position:absolute;left:0;right:0;display:flex;align-items:center;justify-content:center;font-size:0.65em;font-weight:700;letter-spacing:.5px;transition:all .2s;}
-#topBar{top:0;background:rgba(245,158,11,.15);border-bottom:1px solid rgba(245,158,11,.3);color:var(--ac);}
-#botBar{bottom:0;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.3);color:var(--ac);}
-.zm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--bd);font-size:0.65em;}
-.lc{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
-.lchip{padding:5px 11px;border-radius:20px;font-size:0.73em;cursor:pointer;border:1px solid var(--bd);background:var(--bg);color:var(--mu2);transition:all .15s;user-select:none;}
-.lchip.on{background:#160e00;border-color:var(--ac);color:var(--ac);}
+    .page {
+        max-width: 860px;
+        margin: 0 auto;
+    }
 
-/* SPEED TIP */
-.tip{background:#0a1a0a;border:1px solid #1a3a1a;border-radius:10px;padding:12px 14px;margin-top:12px;font-size:0.78em;color:#6aaa6a;line-height:1.6;}
-.tip strong{color:#8acc8a;display:block;margin-bottom:4px;}
+    .hdr {
+        text-align: center;
+        padding: 20px 0 28px;
+    }
 
-/* START BTN */
-.sbtn{width:100%;padding:15px;background:var(--ac);color:#000;border:none;border-radius:12px;font-size:1em;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;}
-.sbtn:hover:not(:disabled){background:var(--ac2);transform:translateY(-1px);}
-.sbtn:disabled{background:var(--s2);color:var(--mu);cursor:not-allowed;transform:none;}
+    .hdr h1 {
+        font-size: 1.9em;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
 
-/* PROGRESS */
-.pc{display:none;}
-.phases{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;}
-.ph{display:flex;align-items:center;gap:12px;padding:10px 13px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;}
-.phd{width:26px;height:26px;border-radius:50%;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:0.72em;font-weight:700;flex-shrink:0;transition:all .3s;}
-.phd.act{border-color:var(--ac);color:var(--ac);animation:pp 1.4s infinite;}
-.phd.dn{border-color:var(--gr);background:var(--gr);color:#fff;}
-@keyframes pp{0%,100%{opacity:1}50%{opacity:.3}}
-.phi{flex:1;}
-.phl{font-size:0.82em;font-weight:500;}
-.phs{font-size:0.7em;color:var(--mu);margin-top:2px;}
+    .hdr h1 span {
+        color: var(--ac);
+    }
 
-/* BIG PROGRESS BAR */
-.pbwrap{margin-bottom:14px;}
-.pbtrack{background:var(--bg);border-radius:20px;height:28px;overflow:hidden;border:1px solid var(--bd);position:relative;}
-.pbfill{height:100%;background:linear-gradient(90deg,var(--ac),var(--ac2));border-radius:20px;transition:width .5s;display:flex;align-items:center;padding-left:12px;font-size:0.72em;font-weight:700;color:#000;white-space:nowrap;overflow:hidden;}
-.pbrow{display:flex;justify-content:space-between;margin-top:5px;}
-.pblbl{font-size:0.73em;color:var(--mu);}
-.pbpct{font-size:0.73em;color:var(--ac);font-weight:700;}
+    .hdr p {
+        color: var(--mu);
+        font-size: 0.85em;
+    }
 
-/* ETA */
-.eta-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
-.eta-box{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;flex:1;min-width:80px;text-align:center;}
-.eta-n{font-size:1.1em;font-weight:700;color:var(--ac);}
-.eta-l{font-size:0.6em;color:var(--mu);text-transform:uppercase;letter-spacing:.4px;margin-top:1px;}
+    .pills {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
 
-/* STATS */
-.sr{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}
-.sb{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px 8px;text-align:center;}
-.sn{font-size:1.2em;font-weight:700;color:var(--ac);}
-.sl{font-size:0.6em;color:var(--mu);margin-top:2px;text-transform:uppercase;letter-spacing:.3px;}
-.log{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:9px 11px;height:68px;overflow-y:auto;font-size:0.68em;font-family:monospace;color:#4ade80;line-height:1.6;}
+    .pill {
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        border-radius: 20px;
+        padding: 3px 11px;
+        font-size: 0.7em;
+        color: var(--mu2);
+    }
 
-/* RESULTS */
-.rc{display:none;}
-.rh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.rt{font-size:1em;font-weight:600;}
-.rbadge{background:#022c22;border:1px solid #064e3b;color:var(--gr);border-radius:20px;padding:3px 11px;font-size:0.72em;font-weight:600;}
-.sl-list{max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:7px;margin-bottom:16px;}
-.sl-list::-webkit-scrollbar{width:3px;}
-.sl-list::-webkit-scrollbar-thumb{background:var(--bd);}
-.si{background:var(--bg);border:1px solid var(--bd);border-radius:9px;padding:11px 13px;border-left:3px solid var(--ac);}
-.si-tc{font-size:0.68em;color:var(--ac);font-family:monospace;margin-bottom:4px;}
-.si-tx{font-size:0.88em;line-height:1.7;}
-.si-tx.rtl{direction:rtl;text-align:right;}
-.dlg{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.db{padding:12px;border-radius:9px;font-size:0.88em;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:7px;border:none;}
-.db.p{background:var(--ac);color:#000;}
-.db.p:hover{background:var(--ac2);}
-.db.s{background:transparent;color:var(--ac);border:1px solid var(--ac);}
-.db.s:hover{background:#160e00;}
-.rbtn{width:100%;padding:10px;margin-top:10px;background:transparent;border:1px solid var(--bd);border-radius:9px;color:var(--mu);font-size:0.8em;cursor:pointer;transition:all .15s;}
-.rbtn:hover{border-color:var(--mu);color:var(--tx);}
-.foot{text-align:center;margin-top:28px;color:var(--mu);font-size:0.72em;}
-.foot a{color:var(--ac);text-decoration:none;}
-</style>
+    .pill.g {
+        color: var(--gr);
+        border-color: #064e3b;
+        background: #022c22;
+    }
+
+    .card {
+        background: var(--s1);
+        border: 1px solid var(--bd);
+        border-radius: 16px;
+        padding: 22px;
+        margin-bottom: 14px;
+    }
+
+    .ct {
+        font-size: 0.72em;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--mu);
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ct::before {
+        content: '';
+        display: block;
+        width: 3px;
+        height: 13px;
+        background: var(--ac);
+        border-radius: 2px;
+    }
+
+    .dz {
+        border: 2px dashed var(--bd);
+        border-radius: 12px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        background: var(--bg);
+        transition: all .2s;
+        position: relative;
+    }
+
+    .dz:hover, .dz.over {
+        border-color: var(--ac);
+        background: #0a1f17;
+    }
+
+    .dz input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+        height: 100%;
+    }
+
+    .dz h3 {
+        font-size: 0.95em;
+        margin-bottom: 4px;
+    }
+
+    .dz p {
+        font-size: 0.78em;
+        color: var(--mu);
+    }
+
+    .fi {
+        display: none;
+        align-items: center;
+        gap: 12px;
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-top: 12px;
+    }
+
+    .fi-ic {
+        width: 36px;
+        height: 36px;
+        background: #0a1f17;
+        border: 1px solid #0d3a28;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    .fi-mt {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .fi-nm {
+        font-size: 0.85em;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .fi-sz {
+        font-size: 0.72em;
+        color: var(--mu);
+        margin-top: 2px;
+    }
+
+    .fi-rm {
+        background: none;
+        border: none;
+        color: var(--mu);
+        cursor: pointer;
+        font-size: 16px;
+        padding: 4px;
+    }
+
+    .fi-rm:hover {
+        color: var(--rd);
+    }
+
+    .live-wrap {
+        position: relative;
+        background: #000;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 12px;
+        display: none;
+        border: 1px solid var(--bd);
+    }
+
+    #lv {
+        width: 100%;
+        display: block;
+        max-height: 220px;
+        object-fit: contain;
+    }
+
+    #lc {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+    .lbadge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: rgba(239, 68, 68, 0.9);
+        color: #fff;
+        font-size: 0.62em;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 4px;
+        letter-spacing: 1px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .lbadge::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        background: #fff;
+        border-radius: 50%;
+        animation: bl 1s infinite;
+    }
+
+    @keyframes bl {
+        0%, 100% {
+            opacity:1
+        }
+
+        50% {
+            opacity: 0
+        }
+    }
+
+    .ltc {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.7);
+        color: var(--ac);
+        font-size: 0.68em;
+        font-family: monospace;
+        padding: 3px 8px;
+        border-radius: 4px;
+    }
+
+    .ltxt {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.78);
+        padding: 7px 12px;
+        font-size: 0.82em;
+        text-align: center;
+        min-height: 32px;
+        direction: rtl;
+    }
+
+    .sg {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+    }
+
+    label.lbl {
+        display: block;
+        font-size: 0.72em;
+        color: var(--mu2);
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        margin-bottom: 5px;
+    }
+
+    select {
+        width: 100%;
+        padding: 9px 11px;
+        background: var(--bg);
+        border: 1px solid var(--bd);
+        border-radius: 8px;
+        color: var(--tx);
+        font-size: 0.85em;
+        outline: none;
+        cursor: pointer;
+    }
+
+    select:focus {
+        border-color: var(--ac);
+    }
+
+    .rr {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .rr input {
+        flex: 1;
+        accent-color: var(--ac);
+    }
+
+    .rv {
+        min-width: 42px;
+        text-align: center;
+        font-size: 0.8em;
+        color: var(--ac);
+        font-weight: 600;
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        border-radius: 6px;
+        padding: 3px 6px;
+    }
+
+    .hint {
+        font-size: 0.68em;
+        color: var(--mu);
+        margin-top: 4px;
+        line-height: 1.4;
+    }
+
+    .tip {
+        background: #061a10;
+        border: 1px solid #0d4a28;
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-top: 14px;
+        font-size: 0.76em;
+        color: #6aaa6a;
+        line-height: 1.7;
+    }
+
+    .tip strong {
+        color: #8acc8a;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .sbtn {
+        width: 100%;
+        padding: 15px;
+        background: var(--ac);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-size: 1em;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all .2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .sbtn:hover:not(:disabled) {
+        background: var(--ac2);
+        transform: translateY(-1px);
+    }
+
+    .sbtn:disabled {
+        background: var(--s2);
+        color: var(--mu);
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .pc {
+        display: none;
+    }
+
+    .phases {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .ph {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 13px;
+        background: var(--bg);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+    }
+
+    .phd {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 2px solid var(--bd);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72em;
+        font-weight: 700;
+        flex-shrink: 0;
+        transition: all .3s;
+    }
+
+    .phd.act {
+        border-color: var(--ac);
+        color: var(--ac);
+        animation: pp 1.4s infinite;
+    }
+
+    .phd.dn {
+        border-color: var(--gr);
+        background: var(--gr);
+        color: #fff;
+    }
+
+    @keyframes pp {
+        0%, 100% {
+            opacity:1
+        }
+
+        50% {
+            opacity: .3
+        }
+    }
+
+    .phi {
+        flex: 1;
+    }
+
+    .phl {
+        font-size: 0.82em;
+        font-weight: 500;
+    }
+
+    .phs {
+        font-size: 0.7em;
+        color: var(--mu);
+        margin-top: 2px;
+    }
+
+    .pbwrap {
+        margin-bottom: 14px;
+    }
+
+    .pbtrack {
+        background: var(--bg);
+        border-radius: 20px;
+        height: 28px;
+        overflow: hidden;
+        border: 1px solid var(--bd);
+    }
+
+    .pbfill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--ac), var(--ac2));
+        border-radius: 20px;
+        transition: width .4s;
+        display: flex;
+        align-items: center;
+        padding-left: 12px;
+        font-size: 0.72em;
+        font-weight: 700;
+        color: #000;
+        white-space: nowrap;
+    }
+
+    .pbrow {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 5px;
+    }
+
+    .pblbl {
+        font-size: 0.73em;
+        color: var(--mu);
+    }
+
+    .pbpct {
+        font-size: 0.73em;
+        color: var(--ac);
+        font-weight: 700;
+    }
+
+    .eta-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+    }
+
+    .eb {
+        background: var(--bg);
+        border: 1px solid var(--bd);
+        border-radius: 8px;
+        padding: 8px 12px;
+        flex: 1;
+        min-width: 80px;
+        text-align: center;
+    }
+
+    .en {
+        font-size: 1.1em;
+        font-weight: 700;
+        color: var(--ac);
+    }
+
+    .el {
+        font-size: 0.6em;
+        color: var(--mu);
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        margin-top: 1px;
+    }
+
+    .sr {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .sb {
+        background: var(--bg);
+        border: 1px solid var(--bd);
+        border-radius: 8px;
+        padding: 10px 8px;
+        text-align: center;
+    }
+
+    .sn {
+        font-size: 1.1em;
+        font-weight: 700;
+        color: var(--ac);
+    }
+
+    .sl {
+        font-size: 0.58em;
+        color: var(--mu);
+        margin-top: 2px;
+        text-transform: uppercase;
+        letter-spacing: .3px;
+    }
+
+    .log {
+        background: var(--bg);
+        border: 1px solid var(--bd);
+        border-radius: 8px;
+        padding: 9px 11px;
+        height: 68px;
+        overflow-y: auto;
+        font-size: 0.68em;
+        font-family: monospace;
+        color: #4ade80;
+        line-height: 1.6;
+    }
+
+    .rc {
+        display: none;
+    }
+
+    .rh {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+    }
+
+    .rt {
+        font-size: 1em;
+        font-weight: 600;
+    }
+
+    .rbadge {
+        background: #022c22;
+        border: 1px solid #064e3b;
+        color: var(--gr);
+        border-radius: 20px;
+        padding: 3px 11px;
+        font-size: 0.72em;
+        font-weight: 600;
+    }
+
+    .sl-list {
+        max-height: 360px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        margin-bottom: 16px;
+    }
+
+    .si {
+        background: var(--bg);
+        border: 1px solid var(--bd);
+        border-radius: 9px;
+        padding: 11px 13px;
+        border-left: 3px solid var(--ac);
+    }
+
+    .si-tc {
+        font-size: 0.68em;
+        color: var(--ac);
+        font-family: monospace;
+        margin-bottom: 4px;
+    }
+
+    .si-tx {
+        font-size: 0.88em;
+        line-height: 1.7;
+    }
+
+    .si-tx.rtl {
+        direction: rtl;
+        text-align: right;
+    }
+
+    .dlg {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .db {
+        padding: 12px;
+        border-radius: 9px;
+        font-size: 0.88em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all .15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        border: none;
+    }
+
+    .db.p {
+        background: var(--ac);
+        color: #fff;
+    }
+
+    .db.p:hover {
+        background: var(--ac2);
+    }
+
+    .db.s {
+        background: transparent;
+        color: var(--ac);
+        border: 1px solid var(--ac);
+    }
+
+    .db.s:hover {
+        background: #0a1f17;
+    }
+
+    .rbtn {
+        width: 100%;
+        padding: 10px;
+        margin-top: 10px;
+        background: transparent;
+        border: 1px solid var(--bd);
+        border-radius: 9px;
+        color: var(--mu);
+        font-size: 0.8em;
+        cursor: pointer;
+        transition: all .15s;
+    }
+
+    .rbtn:hover {
+        border-color: var(--mu);
+        color: var(--tx);
+    }
+
+    .foot {
+        text-align: center;
+        margin-top: 28px;
+        color: var(--mu);
+        font-size: 0.72em;
+    }
+
+    .foot a {
+        color: var(--ac);
+        text-decoration: none;
+    }
+
+    .conf-meter {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 4px;
+    }
+
+    .conf-bar {
+        flex: 1;
+        height: 4px;
+        background: var(--bd);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .conf-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width .2s;
+    }
+    </style>
 </head>
 <body>
-<div class="page">
+    <div class="page">
 
-<div class="hdr">
-  <h1>Burnt-on <span>SRT</span> Extractor</h1>
-  <p>Extract hardcoded subtitles — runs entirely in your browser, free, no API key</p>
-  <div class="pills">
-    <span class="pill g">✓ Free forever</span>
-    <span class="pill g">✓ No API key</span>
-    <span class="pill g">✓ Works offline</span>
-    <span class="pill">Arabic + English</span>
-    <span class="pill">Live video preview</span>
-    <span class="pill">10× faster mode</span>
-  </div>
-</div>
+        <div class="hdr">
+            <h1>
+                Burnt-on 
+                <span>SRT</span>
+                 Extractor
+            </h1>
+            <p>Extract hardcoded Arabic subtitles — runs entirely in your browser, free, no API key</p>
+            <div class="pills">
+                <span class="pill g">✓ Free forever</span>
+                <span class="pill g">✓ No API key</span>
+                <span class="pill g">✓ 100% local</span>
+                <span class="pill">Arabic-only filter</span>
+                <span class="pill">Confidence scoring</span>
+                <span class="pill">Live preview</span>
+            </div>
+        </div>
 
-<!-- UPLOAD -->
-<div class="card">
-  <div class="ct">Step 1 — Upload video</div>
-  <div class="dz" id="dz">
-    <input type="file" id="fi" accept="video/*">
-    <div class="dz-icon">📁</div>
-    <h3>Drop video here or click to browse</h3>
-    <p>MP4, MKV, AVI, MOV — any resolution — processed 100% locally</p>
-  </div>
-  <div class="fi" id="fInfo">
-    <div class="fi-icon">🎞</div>
-    <div class="fi-meta">
-      <div class="fi-name" id="fName">—</div>
-      <div class="fi-size" id="fSize">—</div>
+        <!-- UPLOAD -->
+        <div class="card">
+            <div class="ct">Step 1 — Upload video</div>
+            <div class="dz" id="dz">
+                <input type="file" id="fi" accept="video/*">
+                <div style="font-size:2em;margin-bottom:10px;">📁</div>
+                <h3>Drop video here or click to browse</h3>
+                <p>MP4, MKV, AVI, MOV — processed 100% in your browser</p>
+            </div>
+            <div class="fi" id="fInfo">
+                <div class="fi-ic">🎞</div>
+                <div class="fi-mt">
+                    <div class="fi-nm" id="fName">—</div>
+                    <div class="fi-sz" id="fSize">—</div>
+                </div>
+                <button class="fi-rm" id="fRm">✕</button>
+            </div>
+            <div class="live-wrap" id="liveWrap">
+                <video id="lv" muted playsinline></video>
+                <canvas id="lc">
+                </canvas>
+                <div class="lbadge">SCANNING</div>
+                <div class="ltc" id="ltc">00:00:00</div>
+                <div class="ltxt" id="ltxt">—</div>
+            </div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div class="card">
+            <div class="ct">Step 2 — Settings</div>
+            <div class="sg">
+
+                <div>
+                    <label class="lbl">Frame interval</label>
+                    <select id="interval">
+                        <option value="1.0">1.0s — high accuracy</option>
+                        <option value="1.5" selected>1.5s — recommended ⚡</option>
+                        <option value="2.0">2.0s — fast</option>
+                        <option value="3.0">3.0s — fastest</option>
+                    </select>
+                    <div class="hint">Most Arabic subtitles stay on screen 2–4s. 1.5s catches all of them.</div>
+                </div>
+
+                <div>
+                    <label class="lbl">Subtitle zone</label>
+                    <select id="zone">
+                        <option value="bottom" selected>Bottom only — fastest ⚡</option>
+                        <option value="top">Top only</option>
+                        <option value="both">Both zones</option>
+                    </select>
+                    <div class="hint">Use "Bottom only" unless your video has top subtitles too.</div>
+                </div>
+
+                <div>
+                    <label class="lbl">Crop height (subtitle strip)</label>
+                    <div class="rr">
+                        <input type="range" id="crop" min="8" max="50" value="28" step="1">
+                        <span class="rv" id="cropV">28%</span>
+                    </div>
+                    <div class="hint">28% fits 2-line subtitles. Go up to 35% if letters are still cut off.</div>
+                </div>
+
+                <div>
+                    <label class="lbl">Skip sensitivity</label>
+                    <div class="rr">
+                        <input type="range" id="diff" min="8" max="50" value="22" step="1">
+                        <span class="rv" id="diffV">22</span>
+                    </div>
+                    <div class="hint">Higher skips more identical frames. 22 skips ~85% safely.</div>
+                </div>
+
+                <div>
+                    <label class="lbl">Min confidence % (key setting)</label>
+                    <div class="rr">
+                        <input type="range" id="conf" min="30" max="90" value="55" step="5">
+                        <span class="rv" id="confV">55%</span>
+                    </div>
+                    <div class="hint">Rejects low-confidence OCR results. Eliminates most garbage text.</div>
+                </div>
+
+                <div>
+                    <label class="lbl">Arabic purity filter</label>
+                    <select id="purity">
+                        <option value="0.4">40% — allow mixed text</option>
+                        <option value="0.6" selected>60% — recommended</option>
+                        <option value="0.75">75% — strict Arabic only</option>
+                        <option value="0.9">90% — very strict</option>
+                    </select>
+                    <div class="hint">% of chars that must be Arabic. Kills Latin/symbol garbage.</div>
+                </div>
+
+                <div>
+                    <label class="lbl">Min subtitle length (chars)</label>
+                    <select id="minLen">
+                        <option value="2">2 — catch short words</option>
+                        <option value="3" selected>3 — recommended</option>
+                        <option value="5">5 — sentences only</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="lbl">Image sharpening before OCR</label>
+                    <select id="sharpen">
+                        <option value="0">Off — fastest</option>
+                        <option value="1" selected>On — recommended (better accuracy)</option>
+                    </select>
+                    <div class="hint">Pre-processes each crop to improve Arabic character recognition.</div>
+                </div>
+
+            </div>
+
+            <div class="tip">
+                <strong>⚡ Why this version is more accurate</strong>
+
+                    Every OCR result is now scored by: (1) Tesseract confidence %, (2) Arabic character purity ratio, (3) noise pattern detection. Only results passing all three make it into the SRT. This eliminates the Latin/symbol garbage seen in previous runs.
+                  
+            </div>
+        </div>
+
+        <!-- START -->
+        <button class="sbtn" id="sbtn" disabled>
+            <span>▶</span>
+            <span id="sLabel">Load a video to begin</span>
+        </button>
+
+        <!-- PROGRESS -->
+        <div class="card pc" id="pc" style="margin-top:14px;">
+            <div class="ct">Processing</div>
+            <div class="phases">
+                <div class="ph">
+                    <div class="phd" id="p1d">1</div>
+                    <div class="phi">
+                        <div class="phl">Loading Tesseract OCR engine</div>
+                        <div class="phs" id="p1s">Arabic language model</div>
+                    </div>
+                </div>
+                <div class="ph">
+                    <div class="phd" id="p2d">2</div>
+                    <div class="phi">
+                        <div class="phl">Scanning frames + filtering</div>
+                        <div class="phs" id="p2s">Confidence + Arabic purity checks active</div>
+                    </div>
+                </div>
+                <div class="ph">
+                    <div class="phd" id="p3d">3</div>
+                    <div class="phi">
+                        <div class="phl">Building clean subtitle timeline</div>
+                        <div class="phs" id="p3s">Deduplicating and merging</div>
+                    </div>
+                </div>
+            </div>
+            <div class="pbwrap">
+                <div class="pbtrack">
+                    <div class="pbfill" id="pbf" style="width:0%">0%</div>
+                </div>
+                <div class="pbrow">
+                    <span class="pblbl" id="pblbl">Initialising...</span>
+                    <span class="pbpct" id="pbpct">0%</span>
+                </div>
+            </div>
+            <div class="eta-row">
+                <div class="eb">
+                    <div class="en" id="etaEl">—</div>
+                    <div class="el">Elapsed</div>
+                </div>
+                <div class="eb">
+                    <div class="en" id="etaRm">—</div>
+                    <div class="el">Remaining</div>
+                </div>
+                <div class="eb">
+                    <div class="en" id="etaSpd">—</div>
+                    <div class="el">Frames/min</div>
+                </div>
+                <div class="eb">
+                    <div class="en" id="etaSave">—</div>
+                    <div class="el">% skipped</div>
+                </div>
+                <div class="eb">
+                    <div class="en" id="etaRej">—</div>
+                    <div class="el">% rejected</div>
+                </div>
+            </div>
+            <div class="sr">
+                <div class="sb">
+                    <div class="sn" id="stF">—</div>
+                    <div class="sl">Total</div>
+                </div>
+                <div class="sb">
+                    <div class="sn" id="stSk">—</div>
+                    <div class="sl">Diff skip</div>
+                </div>
+                <div class="sb">
+                    <div class="sn" id="stOcr">—</div>
+                    <div class="sl">OCR runs</div>
+                </div>
+                <div class="sb">
+                    <div class="sn" id="stRej">—</div>
+                    <div class="sl">Rejected</div>
+                </div>
+                <div class="sb">
+                    <div class="sn" id="stSub">—</div>
+                    <div class="sl">Subtitles</div>
+                </div>
+            </div>
+            <div class="log" id="log"></div>
+        </div>
+
+        <!-- RESULTS -->
+        <div class="card rc" id="rc" style="margin-top:14px;">
+            <div class="rh">
+                <div class="rt">Extracted subtitles</div>
+                <div class="rbadge" id="rcnt">0</div>
+            </div>
+            <div class="sl-list" id="slist"></div>
+            <div class="dlg">
+                <button class="db p" id="dlSrt">⬇ Download .srt</button>
+                <button class="db s" id="dlTxt">⬇ Download .txt</button>
+            </div>
+            <button class="rbtn" id="restart">↺ Process another video</button>
+        </div>
+
+        <div class="foot">
+            Powered by 
+            <a href="https://tesseract.projectnaptha.com/" target="_blank">Tesseract.js</a>
+             · Runs 100% in your browser
+        </div>
     </div>
-    <button class="fi-rm" id="fRm">✕</button>
-  </div>
 
-  <!-- LIVE VIDEO PREVIEW -->
-  <div class="live-wrap" id="liveWrap">
-    <video id="liveVideo" muted playsinline></video>
-    <canvas id="liveCanvas"></canvas>
-    <div class="live-badge">SCANNING</div>
-    <div class="live-tc" id="liveTc">00:00:00</div>
-    <div class="live-txt" id="liveTxt">—</div>
-  </div>
-</div>
+    <canvas id="offscreen" style="display:none">
+    </canvas>
+    <canvas id="sharpCvs" style="display:none">
+    </canvas>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script>
+    const $ = id => document.getElementById(id);
+    let vFile = null,
+        subs = [],
+        worker = null,
+        running = false;
+    let totF = 0,
+        skipF = 0,
+        ocrF = 0,
+        rejF = 0,
+        startTime = 0;
 
-<!-- SETTINGS -->
-<div class="card">
-  <div class="ct">Step 2 — Settings</div>
-  <div class="sg">
+    $('crop').oninput = () => $('cropV').textContent = $('crop').value + '%';
+    $('diff').oninput = () => $('diffV').textContent = $('diff').value;
+    $('conf').oninput = () => $('confV').textContent = $('conf').value + '%';
 
-    <div>
-      <label class="lbl">Frame interval</label>
-      <select id="interval">
-        <option value="0.5">0.5s — max accuracy (slow)</option>
-        <option value="1.0" selected>1.0s — recommended ⚡</option>
-        <option value="1.5">1.5s — faster</option>
-        <option value="2.0">2.0s — fastest</option>
-        <option value="3.0">3.0s — very fast (may miss short subs)</option>
-      </select>
-    </div>
+    const dz = $('dz');
+    dz.ondragover = e => {
+        e.preventDefault();
+        dz.classList.add('over');
+    };
+    dz.ondragleave = () => dz.classList.remove('over');
+    dz.ondrop = e => {
+        e.preventDefault();
+        dz.classList.remove('over');
+        if (e.dataTransfer.files[0])
+            loadF(e.dataTransfer.files[0]);
+    };
+    $('fi').onchange = e => {
+        if (e.target.files[0])
+            loadF(e.target.files[0]);
+    };
 
-    <div>
-      <label class="lbl">Subtitle zone</label>
-      <select id="zone">
-        <option value="bottom" selected>Bottom only (fastest)</option>
-        <option value="top">Top only</option>
-        <option value="both">Both top + bottom</option>
-      </select>
-      <div class="zv" style="margin-top:8px;">
-        <div class="zb" id="topBar" style="height:22%">TOP</div>
-        <div class="zm">— frame —</div>
-        <div class="zb" id="botBar" style="height:22%">BOTTOM</div>
-      </div>
-    </div>
-
-    <div>
-      <label class="lbl">Crop height per zone</label>
-      <div class="rr">
-        <input type="range" id="crop" min="10" max="40" value="20" step="1">
-        <span class="rv" id="cropV">20%</span>
-      </div>
-      <div style="font-size:0.7em;color:var(--mu);margin-top:4px;">Tighter crop = faster OCR</div>
-    </div>
-
-    <div>
-      <label class="lbl">Skip sensitivity (higher = skip more)</label>
-      <div class="rr">
-        <input type="range" id="diff" min="5" max="40" value="18" step="1">
-        <span class="rv" id="diffV">18</span>
-      </div>
-      <div style="font-size:0.7em;color:var(--mu);margin-top:4px;">18–25 skips ~80% of frames</div>
-    </div>
-
-    <div>
-      <label class="lbl">Language</label>
-      <div class="lc">
-        <div class="lchip on" data-l="ara">عربي Arabic</div>
-        <div class="lchip on" data-l="eng">English</div>
-      </div>
-      <input type="hidden" id="lang" value="ara+eng">
-    </div>
-
-    <div>
-      <label class="lbl">Min subtitle length</label>
-      <select id="minLen">
-        <option value="1">1 — catch single chars</option>
-        <option value="2" selected>2 — recommended</option>
-        <option value="4">4 — words only</option>
-      </select>
-    </div>
-
-  </div>
-
-  <div class="tip">
-    <strong>⚡ Speed tips for long episodes</strong>
-    Set interval to 1.5s or 2.0s · Use "Bottom only" zone · Keep crop at 20% · Set sensitivity to 20+. A 45-min episode should finish in 8–15 minutes with these settings.
-  </div>
-</div>
-
-<!-- START -->
-<button class="sbtn" id="sbtn" disabled>
-  <span>▶</span><span id="sLabel">Load a video to begin</span>
-</button>
-
-<!-- PROGRESS -->
-<div class="card pc" id="pc" style="margin-top:14px;">
-  <div class="ct">Processing</div>
-
-  <div class="phases">
-    <div class="ph"><div class="phd" id="p1d">1</div><div class="phi"><div class="phl">Loading Tesseract OCR engine</div><div class="phs" id="p1s">Arabic + English language models</div></div></div>
-    <div class="ph"><div class="phd" id="p2d">2</div><div class="phi"><div class="phl">Scanning frames</div><div class="phs" id="p2s">Pixel-diff filtering active</div></div></div>
-    <div class="ph"><div class="phd" id="p3d">3</div><div class="phi"><div class="phl">Building subtitle timeline</div><div class="phs" id="p3s">Merging and deduplicating</div></div></div>
-  </div>
-
-  <div class="pbwrap">
-    <div class="pbtrack">
-      <div class="pbfill" id="pbf" style="width:0%">0%</div>
-    </div>
-    <div class="pbrow">
-      <span class="pblbl" id="pblbl">Initialising...</span>
-      <span class="pbpct" id="pbpct">0%</span>
-    </div>
-  </div>
-
-  <div class="eta-row">
-    <div class="eta-box"><div class="eta-n" id="etaEl">—</div><div class="eta-l">Elapsed</div></div>
-    <div class="eta-box"><div class="eta-n" id="etaRm">—</div><div class="eta-l">Remaining</div></div>
-    <div class="eta-box"><div class="eta-n" id="etaSpd">—</div><div class="eta-l">Frames/min</div></div>
-    <div class="eta-box"><div class="eta-n" id="etaSave">—</div><div class="eta-l">% skipped</div></div>
-  </div>
-
-  <div class="sr">
-    <div class="sb"><div class="sn" id="stF">—</div><div class="sl">Total</div></div>
-    <div class="sb"><div class="sn" id="stSk">—</div><div class="sl">Skipped</div></div>
-    <div class="sb"><div class="sn" id="stOcr">—</div><div class="sl">OCR runs</div></div>
-    <div class="sb"><div class="sn" id="stSub">—</div><div class="sl">Subtitles</div></div>
-  </div>
-
-  <div class="log" id="log"></div>
-</div>
-
-<!-- RESULTS -->
-<div class="card rc" id="rc" style="margin-top:14px;">
-  <div class="rh">
-    <div class="rt">Extracted subtitles</div>
-    <div class="rbadge" id="rcnt">0</div>
-  </div>
-  <div class="sl-list" id="slist"></div>
-  <div class="dlg">
-    <button class="db p" id="dlSrt">⬇ Download .srt</button>
-    <button class="db s" id="dlTxt">⬇ Download .txt</button>
-  </div>
-  <button class="rbtn" id="restart">↺ Process another video</button>
-</div>
-
-<div class="foot">Powered by <a href="https://tesseract.projectnaptha.com/" target="_blank">Tesseract.js</a> · Runs 100% in your browser</div>
-</div>
-
-<canvas id="offscreen" style="display:none"></canvas>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script>
-const $=id=>document.getElementById(id);
-let vFile=null,subs=[],worker=null,running=false;
-let totF=0,skipF=0,ocrF=0,startTime=0;
-
-// lang chips
-document.querySelectorAll('.lchip').forEach(c=>{
-  c.onclick=()=>{
-    c.classList.toggle('on');
-    const a=[...document.querySelectorAll('.lchip.on')].map(x=>x.dataset.l);
-    $('lang').value=a.length?a.join('+'):'ara';
-  };
-});
-
-// ranges
-$('crop').oninput=()=>{$('cropV').textContent=$('crop').value+'%';$('topBar').style.height=$('crop').value+'%';$('botBar').style.height=$('crop').value+'%';};
-$('diff').oninput=()=>$('diffV').textContent=$('diff').value;
-
-// drop
-const dz=$('dz');
-dz.ondragover=e=>{e.preventDefault();dz.classList.add('over');};
-dz.ondragleave=()=>dz.classList.remove('over');
-dz.ondrop=e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])loadF(e.dataTransfer.files[0]);};
-$('fi').onchange=e=>{if(e.target.files[0])loadF(e.target.files[0]);};
-
-function loadF(f){
-  vFile=f;
-  $('liveVideo').src=URL.createObjectURL(f);
-  $('fName').textContent=f.name;
-  $('fSize').textContent=fmtB(f.size);
-  $('fInfo').style.display='flex';
-  $('sbtn').disabled=false;
-  $('sLabel').textContent='Start Extraction';
-  addLog('Loaded: '+f.name+' ('+fmtB(f.size)+')');
-}
-$('fRm').onclick=e=>{e.stopPropagation();vFile=null;$('fInfo').style.display='none';$('liveWrap').style.display='none';$('fi').value='';$('sbtn').disabled=true;$('sLabel').textContent='Load a video to begin';};
-
-function fmtB(b){return b>1e9?(b/1e9).toFixed(1)+' GB':b>1e6?(b/1e6).toFixed(1)+' MB':(b/1e3).toFixed(0)+' KB';}
-
-function fmtTC(s){
-  const h=String(Math.floor(s/3600)).padStart(2,'0');
-  const m=String(Math.floor((s%3600)/60)).padStart(2,'0');
-  const sc=String(Math.floor(s%60)).padStart(2,'0');
-  const ms=String(Math.floor((s%1)*1000)).padStart(3,'0');
-  return`${h}:${m}:${sc},${ms}`;
-}
-function fmtDur(s){
-  if(s<60)return Math.round(s)+'s';
-  const m=Math.floor(s/60),sec=Math.round(s%60);
-  return m+'m '+sec+'s';
-}
-
-function addLog(m){const b=$('log');b.innerHTML+=`<div>> ${m}</div>`;b.scrollTop=b.scrollHeight;}
-
-function setPhase(n,st){
-  const d=$('p'+n+'d');
-  d.className='phd '+(st==='act'?'act':st==='dn'?'dn':'');
-  if(st==='dn')d.textContent='✓';
-}
-function setProg(pct,lbl){
-  const p=Math.min(100,Math.round(pct));
-  $('pbf').style.width=p+'%';
-  $('pbf').textContent=p+'%';
-  $('pbpct').textContent=p+'%';
-  $('pblbl').textContent=lbl;
-}
-function updStats(){
-  $('stF').textContent=totF;$('stSk').textContent=skipF;$('stOcr').textContent=ocrF;$('stSub').textContent=subs.length;
-  const el=(Date.now()-startTime)/1000;
-  $('etaEl').textContent=fmtDur(el);
-  const done=skipF+ocrF;
-  if(done>5&&totF>0){
-    const rate=done/el*60;
-    $('etaSpd').textContent=Math.round(rate);
-    const rem=(totF-done)/done*el;
-    $('etaRm').textContent=fmtDur(rem);
-  }
-  $('etaSave').textContent=done>0?Math.round(skipF/done*100)+'%':'—';
-}
-
-// pixel diff
-function pxDiff(ctxA,ctxB,w,h){
-  const a=ctxA.getImageData(0,0,w,h).data;
-  const b=ctxB.getImageData(0,0,w,h).data;
-  let d=0,c=0;
-  for(let i=0;i<a.length;i+=48){d+=Math.abs(a[i]-b[i])+Math.abs(a[i+1]-b[i+1])+Math.abs(a[i+2]-b[i+2]);c++;}
-  return c>0?d/c:0;
-}
-
-function seekTo(v,t){
-  return new Promise(r=>{const h=()=>{v.removeEventListener('seeked',h);r();};v.addEventListener('seeked',h);v.currentTime=t;});
-}
-
-function cleanTxt(t){return(t||'').replace(/\r/g,'').replace(/\n+/g,' ').replace(/\s+/g,' ').trim();}
-function norm(t){return t.replace(/[\u0617-\u061A\u064B-\u065F\u06D6-\u06ED]/g,'').replace(/\s+/g,' ').trim().toLowerCase();}
-
-function similar(a,b,thr=0.75){
-  a=norm(a);b=norm(b);
-  if(!a&&!b)return true;if(!a||!b)return false;if(a===b)return true;
-  const L=a.length>=b.length?a:b,S=a.length>=b.length?b:a;
-  return(L.length-editD(L,S))/L.length>=thr;
-}
-function editD(a,b){
-  const m=a.length,n=b.length;
-  if(!m)return n;if(!n)return m;
-  const d=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));
-  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=a[i-1]===b[j-1]?d[i-1][j-1]:1+Math.min(d[i-1][j],d[i][j-1],d[i-1][j-1]);
-  return d[m][n];
-}
-
-// draw scan overlay on live canvas
-function drawOverlay(canvas,video,cropRatio,zone,ocrZone,foundText){
-  const ctx=canvas.getContext('2d');
-  canvas.width=video.videoWidth||640;canvas.height=video.videoHeight||360;
-  const W=canvas.width,H=canvas.height;
-  const ch=Math.max(1,Math.floor(H*cropRatio));
-  ctx.clearRect(0,0,W,H);
-  const drawZone=(y,label,active)=>{
-    ctx.strokeStyle=active?'rgba(245,158,11,0.9)':'rgba(245,158,11,0.3)';
-    ctx.lineWidth=active?2:1;
-    ctx.setLineDash(active?[]:[4,4]);
-    ctx.strokeRect(2,y+2,W-4,ch-4);
-    ctx.fillStyle=active?'rgba(245,158,11,0.15)':'rgba(245,158,11,0.05)';
-    ctx.fillRect(2,y+2,W-4,ch-4);
-    ctx.setLineDash([]);
-    if(active){
-      ctx.fillStyle='rgba(245,158,11,0.9)';
-      ctx.font='bold 11px monospace';
-      ctx.fillText(label,8,y+16);
+    function loadF(f) {
+        vFile = f;
+        $('fName').textContent = f.name;
+        $('fSize').textContent = fmtB(f.size);
+        $('fInfo').style.display = 'flex';
+        $('sbtn').disabled = false;
+        $('sLabel').textContent = 'Start Extraction';
+        addLog('Loaded: ' + f.name);
     }
-  };
-  if(zone==='top'||zone==='both')drawZone(0,'▶ SCANNING TOP',ocrZone==='top');
-  if(zone==='bottom'||zone==='both')drawZone(H-ch,'▶ SCANNING BOTTOM',ocrZone==='bottom'||zone==='bottom');
-  if(foundText){
-    ctx.fillStyle='rgba(16,185,129,0.85)';
-    ctx.fillRect(4,H-ch-22,12,12);
-    ctx.fillStyle='rgba(16,185,129,0.9)';
-    ctx.font='bold 10px sans-serif';
-    ctx.fillText('TEXT FOUND',20,H-ch-12);
-  }
-}
+    $('fRm').onclick = e => {
+        e.stopPropagation();
+        vFile = null;
+        $('fInfo').style.display = 'none';
+        $('liveWrap').style.display = 'none';
+        $('fi').value = '';
+        $('sbtn').disabled = true;
+        $('sLabel').textContent = 'Load a video to begin';
+    };
 
-$('sbtn').onclick=async()=>{
-  if(running||!vFile)return;
-  running=true;subs=[];skipF=0;ocrF=0;startTime=Date.now();
-  $('sbtn').disabled=true;$('sLabel').textContent='Processing...';
-  $('pc').style.display='block';$('rc').style.display='none';
-  $('log').innerHTML='';
-  $('pc').scrollIntoView({behavior:'smooth',block:'start'});
-
-  const interval=parseFloat($('interval').value);
-  const crop=parseInt($('crop').value)/100;
-  const diff=parseFloat($('diff').value);
-  const minL=parseInt($('minLen').value);
-  const zone=$('zone').value;
-  const lang=$('lang').value||'ara+eng';
-  const useTop=zone==='top'||zone==='both';
-  const useBot=zone==='bottom'||zone==='both';
-
-  addLog(`interval=${interval}s zone=${zone} crop=${Math.round(crop*100)}% diff=${diff} lang=${lang}`);
-
-  // Phase 1 — load Tesseract
-  setPhase(1,'act');$('p1s').textContent='Downloading language models (cached after first run)...';
-  setProg(2,'Loading OCR engine...');
-
-  try{
-    worker=await Tesseract.createWorker(lang,1,{
-      logger:m=>{
-        if(m.status==='loading tesseract core')$('p1s').textContent='Loading core...';
-        if(m.status==='loading language traineddata')$('p1s').textContent='Language data: '+Math.round(m.progress*100)+'%';
-        if(m.status==='initializing api')$('p1s').textContent='Initialising OCR...';
-      }
-    });
-  }catch(e){addLog('ERROR loading Tesseract: '+e.message);running=false;$('sbtn').disabled=false;return;}
-
-  await worker.setParameters({tessedit_pageseg_mode:'6'});
-  setPhase(1,'dn');addLog('Tesseract ready. Lang: '+lang);
-
-  // Phase 2 — scan
-  setPhase(2,'act');
-  const video=document.createElement('video');
-  video.src=URL.createObjectURL(vFile);video.muted=true;
-  await new Promise(r=>{video.onloadedmetadata=r;});
-  const dur=video.duration;
-
-  // show live preview
-  $('liveVideo').src=URL.createObjectURL(vFile);
-  $('liveWrap').style.display='block';
-  const lvCanvas=$('liveCanvas');
-  const offCanvas=$('offscreen');
-  const offCtx=offCanvas.getContext('2d');
-
-  const times=[];
-  for(let t=0;t<dur;t+=interval)times.push(parseFloat(t.toFixed(3)));
-  totF=times.length;updStats();
-  addLog(`Duration: ${dur.toFixed(1)}s | Sampling: ${times.length} frames | ~${Math.round(dur/interval/60)} frames/min`);
-
-  let prevTopCtx=null,prevBotCtx=null,hasPT=false,hasPB=false;
-  const topRes=[],botRes=[];
-
-  for(let i=0;i<times.length;i++){
-    const t=times[i];
-    await seekTo(video,t);
-
-    offCanvas.width=video.videoWidth||640;
-    offCanvas.height=video.videoHeight||360;
-    offCtx.drawImage(video,0,0);
-
-    const VW=offCanvas.width,VH=offCanvas.height;
-    const CH=Math.max(1,Math.floor(VH*crop));
-
-    // update live video timecode
-    $('liveVideo').currentTime=t;
-    $('liveTc').textContent=fmtTC(t).replace(',','.');
-
-    let ocrDone=false,lastFoundTxt='';
-
-    // TOP ZONE
-    if(useTop){
-      const tc=document.createElement('canvas').getContext('2d');
-      tc.canvas.width=VW;tc.canvas.height=CH;
-      tc.drawImage(offCanvas,0,0,VW,CH,0,0,VW,CH);
-      const pd=hasPT?pxDiff(prevTopCtx,tc,VW,CH):999;
-      if(pd>diff){
-        ocrF++;ocrDone=true;
-        const{data:{text}}=await worker.recognize(tc.canvas);
-        const cl=cleanTxt(text);
-        if(cl.length>=minL){topRes.push({t,text:cl});lastFoundTxt=cl;}
-        if(!prevTopCtx)prevTopCtx=document.createElement('canvas').getContext('2d');
-        prevTopCtx.canvas.width=VW;prevTopCtx.canvas.height=CH;
-        prevTopCtx.drawImage(tc.canvas,0,0);
-        hasPT=true;
-      }else{skipF++;}
+    function fmtB(b) {
+        return b > 1e9 ? (b / 1e9).toFixed(1) + ' GB' : b > 1e6 ? (b / 1e6).toFixed(1) + ' MB' : (b / 1e3).toFixed(0) + ' KB';
     }
 
-    // BOTTOM ZONE
-    if(useBot){
-      const bc=document.createElement('canvas').getContext('2d');
-      bc.canvas.width=VW;bc.canvas.height=CH;
-      bc.drawImage(offCanvas,0,VH-CH,VW,CH,0,0,VW,CH);
-      const pd=hasPB?pxDiff(prevBotCtx,bc,VW,CH):999;
-      if(pd>diff){
-        ocrF++;ocrDone=true;
-        const{data:{text}}=await worker.recognize(bc.canvas);
-        const cl=cleanTxt(text);
-        if(cl.length>=minL){botRes.push({t,text:cl});lastFoundTxt=cl;}
-        if(!prevBotCtx)prevBotCtx=document.createElement('canvas').getContext('2d');
-        prevBotCtx.canvas.width=VW;prevBotCtx.canvas.height=CH;
-        prevBotCtx.drawImage(bc.canvas,0,0);
-        hasPB=true;
-      }else{skipF++;}
+    function fmtTC(s) {
+        const h = String(Math.floor(s / 3600)).padStart(2, '0');
+        const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+        const sc = String(Math.floor(s % 60)).padStart(2, '0');
+        const ms = String(Math.floor((s % 1) * 1000)).padStart(3, '0');
+        return `${h}:${m}:${sc},${ms}`;
+    }
+    function fmtDur(s) {
+        if (s < 60)
+            return Math.round(s) + 's';
+        return Math.floor(s / 60) + 'm ' + Math.round(s % 60) + 's';
     }
 
-    // update live overlay
-    drawOverlay(lvCanvas,video,crop,zone,useTop?'top':'bottom',lastFoundTxt);
-    $('liveTxt').textContent=lastFoundTxt||'—';
-    $('liveTxt').style.direction=/[\u0600-\u06FF]/.test(lastFoundTxt)?'rtl':'ltr';
-
-    updStats();
-    const pct=8+((i+1)/times.length)*80;
-    setProg(pct,`Frame ${i+1} / ${times.length} — t=${t.toFixed(1)}s`);
-    $('p2s').textContent=`Frame ${i+1}/${times.length} · OCR: ${ocrF} · Skipped: ${skipF}`;
-
-    if(i%30===0&&i>0)addLog(`t=${t.toFixed(0)}s | OCR:${ocrF} skipped:${skipF} subs:${subs.length}`);
-  }
-
-  setPhase(2,'dn');
-  addLog(`Scan done. OCR runs: ${ocrF} | Skipped: ${skipF} | Saved: ${Math.round(skipF/(skipF+ocrF+1)*100)}%`);
-
-  // Phase 3 — build timeline
-  setPhase(3,'act');setProg(90,'Building subtitle timeline...');
-
-  function buildTL(frames){
-    const out=[];let cur=null,last='';
-    for(const r of frames){
-      const tx=r.text.trim();
-      if(!tx||tx.length<minL){if(cur){out.push(cur);cur=null;last='';}continue;}
-      if(cur&&similar(tx,last)){cur.end=r.t+interval;}
-      else{if(cur)out.push(cur);cur={start:r.t,end:r.t+interval,text:tx};last=tx;}
+    function addLog(m) {
+        const b = $('log');
+        b.innerHTML += `<div>> ${m}</div>`;
+        b.scrollTop = b.scrollHeight;
     }
-    if(cur)out.push(cur);
-    return out;
-  }
 
-  const tSubs=useTop?buildTL(topRes):[];
-  const bSubs=useBot?buildTL(botRes):[];
-  const merged=[...tSubs,...bSubs].sort((a,b)=>a.start-b.start);
-  const final=[];
-  for(const s of merged){
-    const l=final[final.length-1];
-    if(l&&similar(s.text,l.text,0.85)&&Math.abs(s.start-l.start)<interval*2){l.end=Math.max(l.end,s.end);}
-    else final.push({...s});
-  }
-  subs=final;updStats();
-  setPhase(3,'dn');setProg(100,'Done!');
-  addLog(`Timeline built. Top:${tSubs.length} Bot:${bSubs.length} Final:${final.length} subtitles`);
-  addLog(`Total time: ${fmtDur((Date.now()-startTime)/1000)}`);
+    function setPhase(n, st) {
+        const d = $('p' + n + 'd');
+        d.className = 'phd ' + (st === 'act' ? 'act' : st === 'dn' ? 'dn' : '');
+        if (st === 'dn')
+            d.textContent = '✓';
+    }
+    function setProg(pct, lbl) {
+        const p = Math.min(100, Math.round(pct));
+        $('pbf').style.width = p + '%';
+        $('pbf').textContent = p + '%';
+        $('pbpct').textContent = p + '%';
+        $('pblbl').textContent = lbl;
+    }
+    function updStats() {
+        $('stF').textContent = totF;
+        $('stSk').textContent = skipF;
+        $('stOcr').textContent = ocrF;
+        $('stRej').textContent = rejF;
+        $('stSub').textContent = subs.length;
+        const el = (Date.now() - startTime) / 1000;
+        $('etaEl').textContent = fmtDur(el);
+        const done = skipF + ocrF;
+        if (done > 5 && totF > 0) {
+            const rate = done / el * 60;
+            $('etaSpd').textContent = Math.round(rate);
+            $('etaRm').textContent = fmtDur((totF - done) / done * el);
+        }
+        $('etaSave').textContent = done > 0 ? Math.round(skipF / done * 100) + '%' : '—';
+        $('etaRej').textContent = ocrF > 0 ? Math.round(rejF / ocrF * 100) + '%' : '—';
+    }
 
-  // hide live overlay
-  $('liveCanvas').getContext('2d').clearRect(0,0,$('liveCanvas').width,$('liveCanvas').height);
+    // ── PIXEL DIFF ──
+    function pxDiff(ctxA, ctxB, w, h) {
+        const a = ctxA.getImageData(0, 0, w, h).data,
+            b = ctxB.getImageData(0, 0, w, h).data;
+        let d = 0,
+            c = 0;
+        for (let i = 0; i < a.length; i += 48) {
+            d += Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]);
+            c++;
+        }
+        return c > 0 ? d / c : 0;
+    }
 
-  await worker.terminate();
-  running=false;$('sbtn').disabled=false;$('sLabel').textContent='Start Extraction';
+    // ── SHARPEN for better Arabic OCR ──
+    function sharpenCanvas(src) {
+        const dst = $('sharpCvs');
+        dst.width = src.width;
+        dst.height = src.height;
+        const ctx = dst.getContext('2d');
+        // scale up 2x for better small-text recognition
+        dst.width = src.width * 2;
+        dst.height = src.height * 2;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(src, 0, 0, dst.width, dst.height);
+        // high contrast filter
+        ctx.filter = 'contrast(1.4) brightness(1.1)';
+        ctx.drawImage(dst, 0, 0);
+        ctx.filter = 'none';
+        return dst;
+    }
 
-  if(subs.length===0){
-    addLog('No subtitles found — try: lower diff threshold, wider crop%, zone=Bottom only');
-  }
-  showResults();
-};
+    // ── ARABIC PURITY CHECK ──
+    // Returns ratio of Arabic chars to total meaningful chars
+    function arabicPurity(text) {
+        if (!text || !text.trim())
+            return 0;
+        const arabicChars = (text.match(/[\u0600-\u06FF]/g) || []).length;
+        const meaningful = (text.match(/[\u0600-\u06FF\u0041-\u005A\u0061-\u007A\u0030-\u0039]/g) || []).length;
+        if (meaningful === 0)
+            return 0;
+        return arabicChars / meaningful;
+    }
 
-function showResults(){
-  $('rc').style.display='block';
-  $('rcnt').textContent=subs.length+' subtitle'+(subs.length!==1?'s':'');
-  const show=subs.slice(0,80);
-  $('slist').innerHTML=show.map((s,i)=>{
-    const rtl=/[\u0600-\u06FF]/.test(s.text);
-    return`<div class="si"><div class="si-tc">#${i+1} &nbsp;${fmtTC(s.start)} &rarr; ${fmtTC(s.end)}</div><div class="si-tx ${rtl?'rtl':''}">${s.text}</div></div>`;
-  }).join('')+(subs.length>80?`<div style="text-align:center;color:var(--mu);font-size:0.75em;padding:8px">...and ${subs.length-80} more in the file</div>`:'');
-  $('rc').scrollIntoView({behavior:'smooth',block:'start'});
-}
+    // ── NOISE PATTERN DETECTION ──
+    // Returns true if text looks like OCR garbage
+    function isNoise(text) {
+        if (!text)
+            return true;
+        const t = text.trim();
+        if (t.length < 2)
+            return true;
+        // mostly symbols/punctuation
+        const symbolRatio = (t.match(/[^\u0600-\u06FF\u0041-\u007A\u0030-\u0039\s]/g) || []).length / t.length;
+        if (symbolRatio > 0.5)
+            return true;
+        // repeated single chars
+        if (/^(.)\1{3,}$/.test(t.replace(/\s/g, '')))
+            return true;
+        // long runs of Latin mixed with Arabic (OCR confusion)
+        const latinRuns = (t.match(/[A-Za-z]{4,}/g) || []);
+        if (latinRuns.length > 2)
+            return true;
+        // too many numbers mixed in
+        const numRatio = (t.match(/[0-9]/g) || []).length / t.length;
+        if (numRatio > 0.4)
+            return true;
+        return false;
+    }
 
-$('dlSrt').onclick=()=>{
-  const c=subs.map((s,i)=>`${i+1}\n${fmtTC(s.start)} --> ${fmtTC(s.end)}\n${s.text}\n`).join('\n');
-  dl(c,'.srt');
-};
-$('dlTxt').onclick=()=>dl(subs.map(s=>s.text).join('\n'),'.txt');
+    // ── CLEAN Arabic text ──
+    function cleanArabic(text) {
+        return text
+        .replace(/[A-Za-z]{3,}/g, ' ') // remove long Latin runs
+        .replace(/[0-9]{3,}/g, ' ') // remove long number sequences
+        .replace(/[^\u0600-\u06FF\s\u060C\u061B\u061F\u0021-\u002F\u003A-\u0040]/g, ' ') // keep Arabic + basic punctuation
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
 
-function dl(c,ext){
-  const n=vFile?vFile.name.replace(/\.[^.]+$/,''):'subtitles';
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([c],{type:'text/plain;charset=utf-8'}));
-  a.download=n+ext;a.click();
-}
+    // ── EXTRACT CONFIDENCE from Tesseract data ──
+    function getConfidence(data) {
+        if (!data || !data.words || data.words.length === 0)
+            return 0;
+        const confs = data.words.map(w => w.confidence).filter(c => c > 0);
+        if (confs.length === 0)
+            return 0;
+        return confs.reduce((a, b) => a + b, 0) / confs.length;
+    }
 
-$('restart').onclick=()=>{
-  subs=[];vFile=null;
-  $('fInfo').style.display='none';$('liveWrap').style.display='none';
-  $('fi').value='';$('pc').style.display='none';$('rc').style.display='none';
-  $('sbtn').disabled=true;$('sLabel').textContent='Load a video to begin';
-  $('log').innerHTML='';
-  ['1','2','3'].forEach(n=>{const d=$('p'+n+'d');d.className='phd';d.textContent=n;});
-  setProg(0,'Initialising...');
-  window.scrollTo({top:0,behavior:'smooth'});
-};
-</script>
+    function seekTo(v, t) {
+        return new Promise(r => {
+            const h = () => {
+                v.removeEventListener('seeked', h);
+                r();
+            };
+            v.addEventListener('seeked', h);
+            v.currentTime = t;
+        });
+    }
+
+    function norm(t) {
+        return t.replace(/[\u0617-\u061A\u064B-\u065F\u06D6-\u06ED]/g, '').replace(/\s+/g, ' ').trim();
+    }
+    function similar(a, b, thr=0.75) {
+        a = norm(a);
+        b = norm(b);
+        if (!a && !b)
+            return true;
+        if (!a || !b)
+            return false;
+        if (a === b)
+            return true;
+        const L = a.length >= b.length ? a : b,
+            S = a.length >= b.length ? b : a;
+        return (L.length - editD(L, S)) / L.length >= thr;
+    }
+    function editD(a, b) {
+        const m = a.length,
+            n = b.length;
+        if (!m)
+            return n;
+        if (!n)
+            return m;
+        const dp = Array.from({
+            length: m + 1
+        }, (_, i) => Array.from({
+            length: n + 1
+        }, (_, j) => i === 0 ? j : j === 0 ? i : 0));
+        for (let i = 1; i <= m; i++)
+            for (let j = 1; j <= n; j++)
+                dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+        return dp[m][n];
+    }
+
+    function drawOverlay(canvas, vw, vh, crop, pad, zone, found) {
+        const ctx = canvas.getContext('2d');
+        canvas.width = vw;
+        canvas.height = vh;
+        const ch = Math.max(1, Math.floor(vh * crop));
+        const padPx = Math.floor(vh * 0.04);
+        const totalH = Math.min(ch + padPx, vh);
+        ctx.clearRect(0, 0, vw, vh);
+        const dz = (y, active) => {
+            // outer padded zone (lighter)
+            ctx.strokeStyle = 'rgba(16,185,129,0.2)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.strokeRect(1, y - padPx, vw - 2, totalH + padPx);
+            ctx.setLineDash([]);
+            // inner crop zone (solid)
+            ctx.strokeStyle = active ? 'rgba(16,185,129,0.9)' : 'rgba(16,185,129,0.25)';
+            ctx.lineWidth = active ? 2 : 1;
+            ctx.strokeRect(2, y + 2, vw - 4, ch - 4);
+            ctx.fillStyle = active ? 'rgba(16,185,129,0.10)' : 'rgba(16,185,129,0.03)';
+            ctx.fillRect(2, y + 2, vw - 4, ch - 4);
+            if (active && found) {
+                ctx.fillStyle = 'rgba(16,185,129,0.95)';
+                ctx.font = 'bold 10px monospace';
+                ctx.fillText('✓ TEXT', 8, y + 15);
+            }
+        };
+        if (zone === 'top' || zone === 'both')
+            dz(0, true);
+        if (zone === 'bottom' || zone === 'both')
+            dz(vh - ch, true);
+    }
+
+    $('sbtn').onclick = async () => {
+        if (running || !vFile)
+            return;
+        running = true;
+        subs = [];
+        skipF = 0;
+        ocrF = 0;
+        rejF = 0;
+        startTime = Date.now();
+        $('sbtn').disabled = true;
+        $('sLabel').textContent = 'Processing...';
+        $('pc').style.display = 'block';
+        $('rc').style.display = 'none';
+        $('log').innerHTML = '';
+        $('pc').scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+
+        const interval = parseFloat($('interval').value);
+        const crop = parseInt($('crop').value) / 100;
+        const diff = parseFloat($('diff').value);
+        const minL = parseInt($('minLen').value);
+        const zone = $('zone').value;
+        const confThresh = parseInt($('conf').value);
+        const purityThresh = parseFloat($('purity').value);
+        const doSharpen = parseInt($('sharpen').value) === 1;
+        const useTop = zone === 'top' || zone === 'both';
+        const useBot = zone === 'bottom' || zone === 'both';
+
+        addLog(`interval=${interval}s zone=${zone} crop=${Math.round(crop * 100)}% diff=${diff} conf≥${confThresh}% purity≥${Math.round(purityThresh * 100)}% sharpen=${doSharpen}`);
+
+        // Phase 1
+        setPhase(1, 'act');
+        setProg(2, 'Loading Arabic OCR engine...');
+        try {
+            worker = await Tesseract.createWorker('ara', 1, {
+                logger: m => {
+                    if (m.status === 'loading language traineddata')
+                        $('p1s').textContent = 'Loading Arabic model: ' + Math.round(m.progress * 100) + '%';
+                    if (m.status === 'initializing api')
+                        $('p1s').textContent = 'Initialising OCR...';
+                }
+            });
+        } catch (e) {
+            addLog('ERROR: ' + e.message);
+            running = false;
+            $('sbtn').disabled = false;
+            return;
+        }
+
+        // Arabic-specific PSM settings
+        await worker.setParameters({
+            tessedit_pageseg_mode: '6',
+            tessedit_char_whitelist: '',
+        });
+        // no whitelist — let it find all Arabic
+        setPhase(1, 'dn');
+        addLog('Arabic OCR engine ready.');
+
+        // Phase 2
+        setPhase(2, 'act');
+        const video = document.createElement('video');
+        video.src = URL.createObjectURL(vFile);
+        video.muted = true;
+        await new Promise(r => {
+            video.onloadedmetadata = r;
+        });
+        const dur = video.duration;
+
+        $('lv').src = URL.createObjectURL(vFile);
+        $('liveWrap').style.display = 'block';
+        const lcvs = $('lc'),
+            offCvs = $('offscreen'),
+            offCtx = offCvs.getContext('2d');
+
+        const times = [];
+        for (let t = 0; t < dur; t += interval)
+            times.push(parseFloat(t.toFixed(3)));
+        totF = times.length;
+        updStats();
+        addLog(`Duration: ${dur.toFixed(0)}s | ${times.length} frames to sample`);
+
+        let prevTopCtx = null,
+            prevBotCtx = null,
+            hasPT = false,
+            hasPB = false;
+        const topRes = [],
+            botRes = [];
+
+        for (let i = 0; i < times.length; i++) {
+            const t = times[i];
+            await seekTo(video, t);
+            offCvs.width = video.videoWidth || 1280;
+            offCvs.height = video.videoHeight || 720;
+            offCtx.drawImage(video, 0, 0);
+            const VW = offCvs.width,
+                VH = offCvs.height;
+            const CH = Math.max(1, Math.floor(VH * crop));
+            // PAD adds extra pixels above/below zone so letter ascenders/descenders and 2-line subs are never clipped
+            const PAD = Math.floor(VH * 0.04);
+            $('lv').currentTime = t;
+            $('ltc').textContent = fmtTC(t).split(',')[0];
+
+            let foundTxt = '';
+
+            const processZone = async (isTop) => {
+                // extend zone by PAD in the inward direction
+                const yOff = isTop ? 0 : Math.max(0, VH - CH - PAD);
+                const cropH = Math.min(CH + PAD, VH);
+                const zCtx = document.createElement('canvas').getContext('2d');
+                zCtx.canvas.width = VW;
+                zCtx.canvas.height = cropH;
+                zCtx.drawImage(offCvs, 0, yOff, VW, cropH, 0, 0, VW, cropH);
+
+                const prevCtx = isTop ? prevTopCtx : prevBotCtx;
+                const hasPrev = isTop ? hasPT : hasPB;
+                const pd = hasPrev ? pxDiff(prevCtx, zCtx, VW, cropH) : 999;
+
+                if (pd <= diff) {
+                    skipF++;
+                    return;
+                }
+
+                // run OCR
+                ocrF++;
+                const srcCanvas = doSharpen ? sharpenCanvas(zCtx.canvas) : zCtx.canvas;
+                const {data} = await worker.recognize(srcCanvas);
+                const rawText = (data.text || '').replace(/\r/g, '').replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+                const confidence = getConfidence(data);
+
+                // FILTER 1: confidence threshold
+                if (confidence < confThresh) {
+                    rejF++;
+                    if (isTop) {
+                        prevTopCtx = zCtx;
+                        hasPT = true;
+                    } else {
+                        prevBotCtx = zCtx;
+                        hasPB = true;
+                    }
+                    return;
+                }
+
+                // FILTER 2: noise pattern
+                if (isNoise(rawText)) {
+                    rejF++;
+                    if (isTop) {
+                        prevTopCtx = zCtx;
+                        hasPT = true;
+                    } else {
+                        prevBotCtx = zCtx;
+                        hasPB = true;
+                    }
+                    return;
+                }
+
+                // FILTER 3: Arabic purity
+                const purity = arabicPurity(rawText);
+                if (purity < purityThresh) {
+                    rejF++;
+                    if (isTop) {
+                        prevTopCtx = zCtx;
+                        hasPT = true;
+                    } else {
+                        prevBotCtx = zCtx;
+                        hasPB = true;
+                    }
+                    return;
+                }
+
+                // CLEAN: strip remaining Latin noise
+                const cleaned = cleanArabic(rawText);
+                if (!cleaned || cleaned.length < minL) {
+                    rejF++;
+                    if (isTop) {
+                        prevTopCtx = zCtx;
+                        hasPT = true;
+                    } else {
+                        prevBotCtx = zCtx;
+                        hasPB = true;
+                    }
+                    return;
+                }
+
+                // PASSED all filters
+                foundTxt = cleaned;
+                if (isTop) {
+                    topRes.push({
+                        t,
+                        text: cleaned,
+                        conf: confidence
+                    });
+                }
+                else {
+                    botRes.push({
+                        t,
+                        text: cleaned,
+                        conf: confidence
+                    });
+                }
+                if (isTop) {
+                    prevTopCtx = zCtx;
+                    hasPT = true;
+                } else {
+                    prevBotCtx = zCtx;
+                    hasPB = true;
+                }
+            };
+
+            if (useTop)
+                await processZone(true);
+            if (useBot)
+                await processZone(false);
+
+            drawOverlay(lcvs, video.videoWidth || 1280, video.videoHeight || 720, crop, PAD, zone, !!foundTxt);
+            $('ltxt').textContent = foundTxt || '';
+            $('ltxt').style.display = foundTxt ? 'block' : 'none';
+
+            updStats();
+            const pct = 8 + ((i + 1) / times.length) * 80;
+            setProg(pct, `Frame ${i + 1} / ${times.length} — ${t.toFixed(1)}s`);
+            $('p2s').textContent = `Frame ${i + 1}/${times.length} · OCR:${ocrF} · Skipped:${skipF} · Rejected:${rejF}`;
+
+            if (i % 25 === 0 && i > 0)
+                addLog(`t=${t.toFixed(0)}s | OCR:${ocrF} skip:${skipF} rej:${rejF} subs:${subs.length}`);
+        }
+
+        setPhase(2, 'dn');
+        addLog(`Scan done. OCR:${ocrF} Skipped:${skipF} Rejected:${rejF}`);
+        addLog(`Rejection rate: ${Math.round(rejF / Math.max(ocrF, 1) * 100)}% (was your previous ~90% garbage)`);
+
+        // Phase 3
+        setPhase(3, 'act');
+        setProg(90, 'Building subtitle timeline...');
+
+        function buildTL(frames) {
+            const out = [];
+            let cur = null,
+                last = '';
+            for (const r of frames) {
+                const tx = r.text.trim();
+                if (!tx || tx.length < minL) {
+                    if (cur) {
+                        out.push(cur);
+                        cur = null;
+                        last = '';
+                    }
+                    continue;
+                }
+                if (cur && similar(tx, last)) {
+                    cur.end = r.t + interval;
+                }
+                else {
+                    if (cur)
+                        out.push(cur);
+                    cur = {
+                        start: r.t,
+                        end: r.t + interval,
+                        text: tx,
+                        conf: r.conf
+                    };
+                    last = tx;
+                }
+            }
+            if (cur)
+                out.push(cur);
+            return out;
+        }
+
+        const tSubs = useTop ? buildTL(topRes) : [];
+        const bSubs = useBot ? buildTL(botRes) : [];
+        const merged = [...tSubs, ...bSubs].sort((a, b) => a.start - b.start);
+        const final = [];
+        for (const s of merged) {
+            const l = final[final.length - 1];
+            if (l && similar(s.text, l.text, 0.85) && Math.abs(s.start - l.start) < interval * 2) {
+                l.end = Math.max(l.end, s.end);
+            }
+            else
+                final.push({
+                    ...s
+                });
+        }
+        subs = final;
+        updStats();
+        setPhase(3, 'dn');
+        setProg(100, 'Done!');
+        addLog(`Timeline: top=${tSubs.length} bot=${bSubs.length} final=${final.length} subtitles`);
+        addLog(`Total time: ${fmtDur((Date.now() - startTime) / 1000)}`);
+
+        $('lc').getContext('2d').clearRect(0, 0, $('lc').width, $('lc').height);
+
+        await worker.terminate();
+        running = false;
+        $('sbtn').disabled = false;
+        $('sLabel').textContent = 'Start Extraction';
+
+        if (subs.length === 0) {
+            addLog('No subtitles found. Try: lower confidence to 40%, lower purity to 40%, check crop covers subtitles.');
+        }
+        showResults();
+    };
+
+    function showResults() {
+        $('rc').style.display = 'block';
+        $('rcnt').textContent = subs.length + ' subtitle' + (subs.length !== 1 ? 's' : '');
+        $('slist').innerHTML = subs.slice(0, 80).map((s, i) => {
+            return `<div class="si">
+      <div class="si-tc">#${i + 1} &nbsp;${fmtTC(s.start)} &rarr; ${fmtTC(s.end)}&nbsp;&nbsp;<span style="color:var(--gr);font-size:0.85em">${s.conf ? Math.round(s.conf) + '% conf' : ''}</span></div>
+      <div class="si-tx rtl">${s.text}</div>
+    </div>`
+            ;
+        }).join('') + (subs.length > 80 ? `<div style="text-align:center;color:var(--mu);font-size:0.75em;padding:8px">...and ${subs.length - 80} more</div>` : '');
+        $('rc').scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
+
+    $('dlSrt').onclick = () => {
+        const c = subs.map((s, i) => `${i + 1}\n${fmtTC(s.start)} --> ${fmtTC(s.end)}\n${s.text}\n`).join('\n');
+        dl(c, '.srt');
+    };
+    $('dlTxt').onclick = () => dl(subs.map(s => s.text).join('\n'), '.txt');
+    function dl(c, ext) {
+        const n = vFile ? vFile.name.replace(/\.[^.]+$/, '') : 'subtitles';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([c], {
+            type: 'text/plain;charset=utf-8'
+        }));
+        a.download = n + ext;
+        a.click();
+    }
+    $('restart').onclick = () => {
+        subs = [];
+        vFile = null;
+        $('fInfo').style.display = 'none';
+        $('liveWrap').style.display = 'none';
+        $('fi').value = '';
+        $('pc').style.display = 'none';
+        $('rc').style.display = 'none';
+        $('sbtn').disabled = true;
+        $('sLabel').textContent = 'Load a video to begin';
+        $('log').innerHTML = '';
+        ['1', '2', '3'].forEach(n => {
+            const d = $('p' + n + 'd');
+            d.className = 'phd';
+            d.textContent = n;
+        });
+        setProg(0, 'Initialising...');
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    };
+    </script>
 </body>
 </html>
